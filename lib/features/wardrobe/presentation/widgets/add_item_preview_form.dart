@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../domain/clothing_category.dart';
 import 'add_item_category_selector.dart';
@@ -39,7 +40,7 @@ class AddItemPreviewForm extends StatelessWidget {
         Container(
           height: 280,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
+            color: AppColors.photoBackdrop,
             borderRadius: BorderRadius.circular(24),
           ),
           padding: const EdgeInsets.all(20),

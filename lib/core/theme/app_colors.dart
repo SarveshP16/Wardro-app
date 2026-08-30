@@ -27,6 +27,14 @@ class AppColors {
   static const outlineDark = Color(0xFF3A362F);
   static const inkDark = Color(0xFFF5EFE6);
 
+  // Fixed (non-theme-adaptive) backdrop for displaying cutout PNGs. Cutout
+  // images have a transparent background, so the surface behind them must
+  // stay a constant, contrasty neutral in BOTH light and dark mode — tying
+  // it to `colorScheme.surfaceContainerHighest` (as the dark theme's is a
+  // near-black charcoal) makes dark-colored garments (black/dark denim)
+  // effectively disappear into the card, reading as a blank black square.
+  static const photoBackdrop = Color(0xFFEFE7D8);
+
   // Category accents (light)
   static const categoryTopLight = Color(0xFFB2532D); // terracotta
   static const categoryBottomLight = Color(0xFF4C5B72); // slate blue
