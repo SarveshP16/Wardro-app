@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../application/wardrobe_providers.dart';
 import '../../domain/clothing_category.dart';
@@ -51,7 +52,7 @@ class ItemDetailScreen extends ConsumerWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: AppColors.photoBackdrop,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   padding: const EdgeInsets.all(24),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../domain/clothing_category.dart';
 import '../../domain/clothing_item.dart';
 
@@ -27,7 +28,7 @@ class ClothingItemCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: AppColors.photoBackdrop,
               padding: const EdgeInsets.all(14),
               child: Hero(
                 tag: 'wardrobe-item-${item.id}',
