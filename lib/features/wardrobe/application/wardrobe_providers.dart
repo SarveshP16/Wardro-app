@@ -12,7 +12,7 @@ final wardrobeRepositoryProvider = Provider<WardrobeRepository>((ref) {
 final backgroundRemovalServiceProvider = Provider<BackgroundRemovalService>((
   ref,
 ) {
-  return LocalRembgBackgroundRemovalService();
+  return OnnxBackgroundRemovalService();
 });
 
 /// `null` means "All categories".
