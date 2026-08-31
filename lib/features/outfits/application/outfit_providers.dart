@@ -39,10 +39,18 @@ final outfitGenerationServiceProvider = Provider<OutfitGenerationService>((
   };
 });
 
-/// The style currently selected in the generator UI.
+/// The style currently selected in the generator UI (AI Stylist only —
+/// Quick Match ignores occasion by design).
 final selectedOutfitStyleProvider = StateProvider<OutfitStyle>(
   (ref) => OutfitStyle.casual,
 );
+
+/// Quick Match controls — how many outfits to generate, and whether to
+/// consider outerwear/shoes at all (vs. always excluding them, e.g. in
+/// summer or for a shoes-free flat-lay).
+final quickMatchCountProvider = StateProvider<int>((ref) => 3);
+final quickMatchIncludeOuterwearProvider = StateProvider<bool>((ref) => true);
+final quickMatchIncludeShoesProvider = StateProvider<bool>((ref) => true);
 
 /// Resolves a wardrobe item id back to the full [ClothingItem], for
 /// rendering a [GeneratedOutfit]/[SavedOutfit]'s thumbnails.
@@ -119,10 +127,22 @@ class OutfitGenerationNotifier extends StateNotifier<OutfitGenerationState> {
 
   final OutfitGenerationService _service;
 
-  Future<void> generate(OutfitStyle style, List<ClothingItem> items) async {
+  Future<void> generate(
+    OutfitStyle style,
+    List<ClothingItem> items, {
+    int count = 3,
+    bool includeOuterwear = true,
+    bool includeShoes = true,
+  }) async {
     state = const OutfitGenerationLoading();
     try {
-      final outfits = await _service.generate(style: style, items: items);
+      final outfits = await _service.generate(
+        style: style,
+        items: items,
+        count: count,
+        includeOuterwear: includeOuterwear,
+        includeShoes: includeShoes,
+      );
       state = OutfitGenerationData(outfits);
     } on OutfitGenerationException catch (e) {
       state = OutfitGenerationError(e.message);

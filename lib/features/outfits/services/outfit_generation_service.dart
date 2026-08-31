@@ -20,9 +20,17 @@ class OutfitGenerationException implements Exception {
 }
 
 abstract class OutfitGenerationService {
+  /// [count], [includeOuterwear], and [includeShoes] are Quick Match
+  /// controls (see `ColorMatchOutfitGenerationService`) — the AI Stylist
+  /// ignores them for now and always proposes its own best 2-4 piece
+  /// combos server-side (a future version could pass them into the
+  /// prompt).
   Future<List<GeneratedOutfit>> generate({
     required OutfitStyle style,
     required List<ClothingItem> items,
+    int count = 3,
+    bool includeOuterwear = true,
+    bool includeShoes = true,
   });
 }
 
@@ -39,6 +47,9 @@ class HttpOutfitGenerationService implements OutfitGenerationService {
   Future<List<GeneratedOutfit>> generate({
     required OutfitStyle style,
     required List<ClothingItem> items,
+    int count = 3,
+    bool includeOuterwear = true,
+    bool includeShoes = true,
   }) async {
     if (AppConfig.outfitFunctionUrl.isEmpty) {
       throw OutfitGenerationException(

@@ -2,10 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/painting.dart' show Color, HSLColor;
 
-/// Lightweight color-theory scoring for the free on-device "Quick Match"
-/// outfit generator. Deliberately simple (no full color-wheel taxonomy,
-/// no pattern awareness) — good enough to rank candidate combinations,
-/// not a substitute for the AI Stylist's actual visual judgment.
+import 'sanzo_wada_palette.dart';
+
+/// Color-theory scoring for the free on-device "Quick Match" outfit
+/// generator: a synthetic hue-distance model (no pattern awareness, not a
+/// substitute for the AI Stylist's actual visual judgment) blended with
+/// [SanzoWadaPalette]'s curated, real-world color pairings.
 class ColorHarmony {
   ColorHarmony._();
 
@@ -35,9 +37,21 @@ class ColorHarmony {
     return 0.5 + 0.5 * math.cos(2 * radians);
   }
 
+  /// [score], boosted when [a] and [b] snap to two Sanzo Wada reference
+  /// colors he actually published together — real curated precedent
+  /// outranks the synthetic hue-distance estimate, including for hue
+  /// gaps the geometric model alone would score as "clashing".
+  static double hybridScore(Color a, Color b, SanzoWadaPalette palette) {
+    final geometric = score(a, b);
+    if (isNeutral(a) || isNeutral(b)) return geometric;
+    return palette.isPaired(a, b) ? math.max(geometric, 0.97) : geometric;
+  }
+
   /// A short human-readable label for why two colors were paired, for the
-  /// generated outfit's title/rationale.
-  static String describe(Color a, Color b) {
+  /// generated outfit's title/rationale. When [palette] confirms a real
+  /// Sanzo Wada pairing, names the actual reference colors instead of the
+  /// generic geometric description.
+  static String describe(Color a, Color b, {SanzoWadaPalette? palette}) {
     final aNeutral = isNeutral(a);
     final bNeutral = isNeutral(b);
     if (aNeutral && bNeutral) {
@@ -45,6 +59,11 @@ class ColorHarmony {
     }
     if (aNeutral || bNeutral) {
       return 'Neutral base with a pop of color';
+    }
+    if (palette != null && palette.isPaired(a, b)) {
+      final nameA = palette.nearestName(a);
+      final nameB = palette.nearestName(b);
+      return 'Classic pairing: $nameA & $nameB';
     }
     final diff = _hueDistance(HSLColor.fromColor(a).hue, HSLColor.fromColor(b).hue);
     if (diff > 150) return 'Complementary colors';
