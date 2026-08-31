@@ -11,5 +11,6 @@ class LocalStorageService {
   static Future<void> init() async {
     await Hive.initFlutter();
     await Hive.openBox<Map>(HiveBoxes.wardrobeItems);
+    await Hive.openBox<Map>(HiveBoxes.savedOutfits);
   }
 }

@@ -11,6 +11,7 @@ import '../../application/wardrobe_providers.dart';
 import '../../domain/clothing_category.dart';
 import '../../domain/clothing_item.dart';
 import '../../services/background_removal_service.dart';
+import '../../services/dominant_color_extractor.dart';
 import '../widgets/add_item_preview_form.dart';
 import '../widgets/add_item_processing_view.dart';
 import '../widgets/add_item_source_picker.dart';
@@ -71,6 +72,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     setState(() => _isSaving = true);
     final id = _uuid.v4();
     final imagePath = await ImageFileStore.save(id: id, bytes: bytes);
+    final dominantColor = await DominantColorExtractor.extract(bytes);
     final item = ClothingItem(
       id: id,
       category: _category,
@@ -79,6 +81,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       name: _nameController.text.trim().isEmpty
           ? null
           : _nameController.text.trim(),
+      dominantColor: dominantColor,
     );
     await ref.read(wardrobeItemsProvider.notifier).add(item);
 

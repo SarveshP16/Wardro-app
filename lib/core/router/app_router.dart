@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/outfits/presentation/screens/outfits_placeholder_screen.dart';
+import '../../features/outfits/presentation/screens/outfits_screen.dart';
 import '../../features/wardrobe/presentation/screens/add_item_screen.dart';
 import '../../features/wardrobe/presentation/screens/item_detail_screen.dart';
 import '../../features/wardrobe/presentation/screens/wardrobe_screen.dart';
@@ -40,7 +40,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.outfits,
-                builder: (context, state) => const OutfitsPlaceholderScreen(),
+                builder: (context, state) => const OutfitsScreen(),
               ),
             ],
           ),
