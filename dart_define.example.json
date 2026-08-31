@@ -1,0 +1,4 @@
+{
+  "OUTFIT_FUNCTION_URL": "https://REGION-PROJECT_ID.cloudfunctions.net/generate_outfit",
+  "APP_SHARED_SECRET": "paste-the-same-value-set-via-firebase-functions-secrets-set"
+}
