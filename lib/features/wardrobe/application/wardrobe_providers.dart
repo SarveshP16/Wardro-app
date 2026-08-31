@@ -36,6 +36,11 @@ class WardrobeItemsNotifier extends StateNotifier<List<ClothingItem>> {
     state = _repository.getAll();
   }
 
+  Future<void> update(ClothingItem item) async {
+    await _repository.update(item);
+    state = _repository.getAll();
+  }
+
   Future<void> delete(String id) async {
     await _repository.delete(id);
     state = _repository.getAll();

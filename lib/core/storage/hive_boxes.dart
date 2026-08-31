@@ -5,4 +5,5 @@ class HiveBoxes {
 
   static const wardrobeItems = 'wardrobe_items';
   static const savedOutfits = 'saved_outfits';
+  static const settings = 'settings';
 }

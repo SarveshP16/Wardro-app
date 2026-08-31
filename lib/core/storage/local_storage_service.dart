@@ -12,5 +12,6 @@ class LocalStorageService {
     await Hive.initFlutter();
     await Hive.openBox<Map>(HiveBoxes.wardrobeItems);
     await Hive.openBox<Map>(HiveBoxes.savedOutfits);
+    await Hive.openBox(HiveBoxes.settings);
   }
 }

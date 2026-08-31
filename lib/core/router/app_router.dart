@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/outfits/presentation/screens/outfits_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/wardrobe/domain/clothing_item.dart';
 import '../../features/wardrobe/presentation/screens/add_item_screen.dart';
+import '../../features/wardrobe/presentation/screens/edit_item_screen.dart';
 import '../../features/wardrobe/presentation/screens/item_detail_screen.dart';
 import '../../features/wardrobe/presentation/screens/wardrobe_screen.dart';
 import 'app_routes.dart';
@@ -31,6 +34,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => ItemDetailScreen(
                       itemId: state.pathParameters['id']!,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: AppRoutes.editItem,
+                        builder: (context, state) => EditItemScreen(
+                          item: state.extra as ClothingItem,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -41,6 +52,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.outfits,
                 builder: (context, state) => const OutfitsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                builder: (context, state) => const SettingsScreen(),
               ),
             ],
           ),
