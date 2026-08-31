@@ -31,6 +31,9 @@ dependencies:
   # Outfit-generation backend call
   http: ^1.2.2
 
+  # Settings
+  package_info_plus: ^8.1.2
+
   # Utilities
   uuid: ^4.5.1
 

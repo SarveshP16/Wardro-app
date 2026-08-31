@@ -23,6 +23,13 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
   static const _maxCombosEvaluated = 2000;
   static const maxResultCount = 8;
 
+  /// Signatures (sorted item ids, joined) returned by the *previous*
+  /// call, so consecutive taps of "Generate" don't just hand back the
+  /// same top-scoring batch every time. Session-only (an instance of
+  /// this service lives as long as Quick Match stays selected — see
+  /// `outfitGenerationServiceProvider`); intentionally not persisted.
+  Set<String> _previousBatch = {};
+
   @override
   Future<List<GeneratedOutfit>> generate({
     required OutfitStyle style,
@@ -85,21 +92,31 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
     combos.sort((a, b) => b.score.compareTo(a.score));
 
     final resultCount = count.clamp(1, maxResultCount);
-    final results = <GeneratedOutfit>[];
-    final seenSignatures = <String>{};
-    for (final combo in combos) {
-      final signature = combo.items.map((i) => i.id).join(',');
-      if (!seenSignatures.add(signature)) continue;
-      results.add(combo.toGeneratedOutfit());
-      if (results.length == resultCount) break;
+    final chosen = <_ScoredCombo>[];
+    final chosenSignatures = <String>{};
+
+    // First pass: best-scoring combos the user hasn't just seen. Second
+    // pass (only if the wardrobe is too small to fill the request without
+    // repeats): allow repeats rather than returning fewer than asked.
+    for (final avoidPreviousBatch in [true, false]) {
+      if (chosen.length == resultCount) break;
+      for (final combo in combos) {
+        if (chosen.length == resultCount) break;
+        final signature = combo.items.map((i) => i.id).join(',');
+        if (chosenSignatures.contains(signature)) continue;
+        if (avoidPreviousBatch && _previousBatch.contains(signature)) continue;
+        chosenSignatures.add(signature);
+        chosen.add(combo);
+      }
     }
 
-    if (results.isEmpty) {
+    if (chosen.isEmpty) {
       throw OutfitGenerationException(
         'Could not put together an outfit from these items.',
       );
     }
-    return results;
+    _previousBatch = chosenSignatures;
+    return chosen.map((combo) => combo.toGeneratedOutfit()).toList();
   }
 
   _ScoredCombo _score(

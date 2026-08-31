@@ -28,6 +28,11 @@ class AppShell extends StatelessWidget {
             selectedIcon: Icon(Icons.auto_awesome),
             label: 'Outfits',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );

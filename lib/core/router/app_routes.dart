@@ -8,6 +8,9 @@ class AppRoutes {
 
   static const addItem = 'add-item';
   static const itemDetail = 'item';
+  static const editItem = 'edit';
+  static const settings = '/settings';
 
   static String itemDetailPath(String id) => '/wardrobe/item/$id';
+  static String editItemPath(String id) => '${itemDetailPath(id)}/$editItem';
 }
