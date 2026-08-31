@@ -7,33 +7,42 @@ import '../../wardrobe/domain/clothing_item.dart';
 import '../domain/color_harmony.dart';
 import '../domain/generated_outfit.dart';
 import '../domain/outfit_style.dart';
+import '../domain/sanzo_wada_palette.dart';
 import 'outfit_generation_service.dart';
 
 const _fallbackNeutral = Color(0xFF9E9E9E);
 
 /// Free, fully offline outfit generation: ranks top+bottom(+outerwear)
 /// (+shoes) combinations from the user's own wardrobe purely by color
-/// harmony (see [ColorHarmony]) -- no network call, no occasion
-/// awareness (that's what the paid AI Stylist adds). [style] is accepted
-/// only to satisfy [OutfitGenerationService]'s shared interface; Quick
-/// Match ignores it, by design (see project memory).
+/// harmony (see [ColorHarmony], boosted by real curated pairings from
+/// [SanzoWadaPalette]) -- no network call, no occasion awareness (that's
+/// what the paid AI Stylist adds). [style] is accepted only to satisfy
+/// [OutfitGenerationService]'s shared interface; Quick Match ignores it,
+/// by design (see project memory).
 class ColorMatchOutfitGenerationService implements OutfitGenerationService {
-  static const _resultCount = 3;
   static const _maxCombosEvaluated = 2000;
+  static const maxResultCount = 8;
 
   @override
   Future<List<GeneratedOutfit>> generate({
     required OutfitStyle style,
     required List<ClothingItem> items,
+    int count = 3,
+    bool includeOuterwear = true,
+    bool includeShoes = true,
   }) async {
+    await SanzoWadaPalette.instance.ensureLoaded();
+
     final tops = items.where((i) => i.category == ClothingCategory.top).toList();
     final bottoms = items
         .where((i) => i.category == ClothingCategory.bottom)
         .toList();
-    final outerwear = items
-        .where((i) => i.category == ClothingCategory.outerwear)
-        .toList();
-    final shoes = items.where((i) => i.category == ClothingCategory.shoes).toList();
+    final outerwear = includeOuterwear
+        ? items.where((i) => i.category == ClothingCategory.outerwear).toList()
+        : const <ClothingItem>[];
+    final shoes = includeShoes
+        ? items.where((i) => i.category == ClothingCategory.shoes).toList()
+        : const <ClothingItem>[];
 
     if (tops.isEmpty || bottoms.isEmpty) {
       throw OutfitGenerationException(
@@ -75,13 +84,14 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
 
     combos.sort((a, b) => b.score.compareTo(a.score));
 
+    final resultCount = count.clamp(1, maxResultCount);
     final results = <GeneratedOutfit>[];
     final seenSignatures = <String>{};
     for (final combo in combos) {
       final signature = combo.items.map((i) => i.id).join(',');
       if (!seenSignatures.add(signature)) continue;
       results.add(combo.toGeneratedOutfit());
-      if (results.length == _resultCount) break;
+      if (results.length == resultCount) break;
     }
 
     if (results.isEmpty) {
@@ -98,6 +108,7 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
     ClothingItem? outer,
     ClothingItem? shoe,
   ) {
+    final palette = SanzoWadaPalette.instance;
     final items = [top, bottom, ?outer, ?shoe];
     final colors = [
       for (final item in items) item.dominantColor ?? _fallbackNeutral,
@@ -107,7 +118,7 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
     var pairs = 0;
     for (var i = 0; i < colors.length; i++) {
       for (var j = i + 1; j < colors.length; j++) {
-        total += ColorHarmony.score(colors[i], colors[j]);
+        total += ColorHarmony.hybridScore(colors[i], colors[j], palette);
         pairs++;
       }
     }
@@ -116,6 +127,7 @@ class ColorMatchOutfitGenerationService implements OutfitGenerationService {
     final title = ColorHarmony.describe(
       top.dominantColor ?? _fallbackNeutral,
       bottom.dominantColor ?? _fallbackNeutral,
+      palette: palette,
     );
     final pieces = [
       top.category.label,

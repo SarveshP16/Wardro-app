@@ -6,8 +6,12 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../../core/widgets/staggered_entrance.dart';
 import '../../../wardrobe/application/wardrobe_providers.dart';
+import '../../../wardrobe/domain/clothing_category.dart';
 import '../../../wardrobe/domain/clothing_item.dart';
 import '../../application/outfit_providers.dart';
+import '../../services/color_match_outfit_generation_service.dart';
+import '../widgets/outfit_category_toggles.dart';
+import '../widgets/outfit_count_stepper.dart';
 import '../widgets/outfit_generating_view.dart';
 import '../widgets/outfit_mode_toggle.dart';
 import '../widgets/outfit_result_card.dart';
@@ -47,6 +51,16 @@ class OutfitsScreen extends ConsumerWidget {
     final isLoading = generationState is OutfitGenerationLoading;
     final isQuickMatch = mode == OutfitGeneratorMode.quickMatch;
 
+    final hasOuterwear = wardrobeItems.any(
+      (i) => i.category == ClothingCategory.outerwear,
+    );
+    final hasShoes = wardrobeItems.any(
+      (i) => i.category == ClothingCategory.shoes,
+    );
+    final quickMatchCount = ref.watch(quickMatchCountProvider);
+    final includeOuterwear = ref.watch(quickMatchIncludeOuterwearProvider);
+    final includeShoes = ref.watch(quickMatchIncludeShoesProvider);
+
     List<ClothingItem> resolve(List<String> itemIds) => itemIds
         .map((id) => itemsById[id])
         .whereType<ClothingItem>()
@@ -70,19 +84,49 @@ class OutfitsScreen extends ConsumerWidget {
                   ref.read(outfitGeneratorModeProvider.notifier).state = newMode,
             ),
             const SizedBox(height: 16),
-            if (!isQuickMatch)
+            if (!isQuickMatch) ...[
               OutfitStyleSelector(
                 selected: selectedStyle,
                 onChanged: (style) =>
                     ref.read(selectedOutfitStyleProvider.notifier).state = style,
               ),
-            if (!isQuickMatch) const SizedBox(height: 20),
+              const SizedBox(height: 20),
+            ],
+            if (isQuickMatch) ...[
+              OutfitCategoryToggles(
+                hasOuterwear: hasOuterwear,
+                hasShoes: hasShoes,
+                includeOuterwear: includeOuterwear,
+                includeShoes: includeShoes,
+                onOuterwearChanged: (value) => ref
+                    .read(quickMatchIncludeOuterwearProvider.notifier)
+                    .state = value,
+                onShoesChanged: (value) => ref
+                    .read(quickMatchIncludeShoesProvider.notifier)
+                    .state = value,
+              ),
+              if (hasOuterwear || hasShoes) const SizedBox(height: 16),
+              OutfitCountStepper(
+                count: quickMatchCount,
+                min: 1,
+                max: ColorMatchOutfitGenerationService.maxResultCount,
+                onChanged: (value) =>
+                    ref.read(quickMatchCountProvider.notifier).state = value,
+              ),
+              const SizedBox(height: 20),
+            ],
             FilledButton.icon(
               onPressed: isLoading
                   ? null
                   : () => ref
                         .read(outfitGenerationProvider.notifier)
-                        .generate(selectedStyle, wardrobeItems),
+                        .generate(
+                          selectedStyle,
+                          wardrobeItems,
+                          count: isQuickMatch ? quickMatchCount : 3,
+                          includeOuterwear: !isQuickMatch || includeOuterwear,
+                          includeShoes: !isQuickMatch || includeShoes,
+                        ),
               icon: isLoading
                   ? const SizedBox(
                       width: 18,
