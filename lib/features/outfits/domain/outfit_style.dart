@@ -20,9 +20,9 @@ extension OutfitStyleX on OutfitStyle {
     OutfitStyle.evening => Icons.nightlife_outlined,
   };
 
-  /// Wire value expected by the `generate_outfit` Cloud Function — kept
-  /// separate from [name] so reordering this enum can never silently
-  /// change what's sent over the network.
+  /// Wire value sent to Claude in the AI Stylist prompt — kept separate
+  /// from [name] so reordering this enum can never silently change what's
+  /// sent over the network.
   String get apiValue => switch (this) {
     OutfitStyle.casual => 'casual',
     OutfitStyle.smartCasual => 'smart_casual',

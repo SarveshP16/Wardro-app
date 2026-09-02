@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/section_header.dart';
@@ -82,6 +83,7 @@ class OutfitsScreen extends ConsumerWidget {
               mode: mode,
               onChanged: (newMode) =>
                   ref.read(outfitGeneratorModeProvider.notifier).state = newMode,
+              aiStylistEnabled: AppConfig.anthropicApiKey.isNotEmpty,
             ),
             const SizedBox(height: 16),
             if (!isQuickMatch) ...[

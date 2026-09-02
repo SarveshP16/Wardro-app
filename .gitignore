@@ -23,11 +23,7 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Standalone Firebase CLI binary (downloaded locally, not part of source)
-/.tools/
-firebase-debug.log
-
-# Real build-time secrets (function URL + shared secret) -- see
+# Real build-time secrets (Anthropic API key) -- see
 # dart_define.example.json for the template.
 /dart_define.json
 
