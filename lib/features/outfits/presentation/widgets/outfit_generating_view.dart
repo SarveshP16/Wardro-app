@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-/// Shown while waiting on the outfit-generation Cloud Function call —
-/// this one genuinely needs a network round-trip (unlike background
-/// removal), so the copy sets that expectation.
+/// Shown while waiting on the outfit-generation call to Claude — this one
+/// genuinely needs a network round-trip (unlike background removal), so
+/// the copy sets that expectation.
 class OutfitGeneratingView extends StatelessWidget {
   const OutfitGeneratingView({super.key});
 

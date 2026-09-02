@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../../application/outfit_providers.dart';
 
 /// Segmented toggle between the free on-device "Quick Match" generator and
-/// the paid "AI Stylist". AI Stylist is shown but disabled until its
-/// Cloud Function backend is actually deployed (see project memory) --
-/// visible now so the upsell exists, without pretending it works yet.
+/// "AI Stylist" (calls Claude directly with the key from `dart_define.json`
+/// -- see `AppConfig.anthropicApiKey`). AI Stylist is shown but disabled
+/// until a key is configured, so the option is visible without pretending
+/// it works with no key set.
 class OutfitModeToggle extends StatelessWidget {
   const OutfitModeToggle({
     super.key,
@@ -46,7 +47,7 @@ class OutfitModeToggle extends StatelessWidget {
                 onTap: aiStylistEnabled
                     ? () => onChanged(OutfitGeneratorMode.aiStylist)
                     : null,
-                badge: aiStylistEnabled ? null : 'Soon',
+                badge: aiStylistEnabled ? null : 'No key',
               ),
             ),
           ],

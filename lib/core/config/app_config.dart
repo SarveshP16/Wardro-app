@@ -6,14 +6,9 @@
 class AppConfig {
   AppConfig._();
 
-  /// HTTPS URL of the deployed `generate_outfit` Cloud Function.
-  static const outfitFunctionUrl = String.fromEnvironment(
-    'OUTFIT_FUNCTION_URL',
-  );
-
-  /// Shared secret sent as the `X-Wardro-App-Key` header — a stopgap abuse
-  /// guard until real accounts/App Check exist, not a substitute for the
-  /// Anthropic key itself (which never leaves the Cloud Function). See
-  /// project memory for why this exists.
-  static const appSharedSecret = String.fromEnvironment('APP_SHARED_SECRET');
+  /// Anthropic API key used by the AI Stylist to call Claude directly from
+  /// the app. This app is built for personal/self-hosted use only (not
+  /// distributed via app stores), so there's no untrusted audience to hide
+  /// the key from — see project memory for why there's no backend proxy.
+  static const anthropicApiKey = String.fromEnvironment('ANTHROPIC_API_KEY');
 }

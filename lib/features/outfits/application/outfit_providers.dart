@@ -15,8 +15,8 @@ final outfitRepositoryProvider = Provider<OutfitRepository>((ref) {
 });
 
 /// Which engine powers generation: the free on-device color matcher, or
-/// the paid Claude-vision "AI Stylist" (Cloud Function). See project
-/// memory for why both exist.
+/// the Claude-vision "AI Stylist" (calls the Anthropic API directly with
+/// the key from `dart_define.json`).
 enum OutfitGeneratorMode { quickMatch, aiStylist }
 
 extension OutfitGeneratorModeX on OutfitGeneratorMode {
