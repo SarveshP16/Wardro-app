@@ -1,32 +1,44 @@
+<div align="center">
+
+<img src="assets/branding/app_icon.png" width="120" height="120" alt="Wardro logo" />
+
 # Wardro
 
-<img src="assets/branding/app_icon.png" alt="Wardro app icon" width="120" height="120">
+**Your wardrobe, styled — on-device or by Claude.**
+
+[![Flutter](https://img.shields.io/badge/Flutter-3-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-3DDC84?logo=android&logoColor=white)](#)
+[![Version](https://img.shields.io/badge/Version-1.0.0-B2532D)](CHANGELOG.md)
+[![Personal use](https://img.shields.io/badge/Distribution-personal%20use-4C5B72)](#configuration)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/crystaxit)
+
+</div>
+
+---
 
 A personal digital wardrobe and outfit generator, built with Flutter. Snap a
-photo of a clothing item, Wardro cuts it out and files it away, and then
-helps you put outfits together — either instantly on-device or with an AI
+photo of a clothing item, Wardro cuts it out and files it away, then helps
+you put outfits together — either instantly on-device, or with an AI
 stylist for occasions that matter.
 
-> **Note:** Wardro is built for personal/self-hosted use, not app-store
-> distribution. See [Configuration](#configuration) for what that means for
-> the AI Stylist's API key.
+Wardro is **local-first**: your wardrobe lives on-device in Hive, no
+account or cloud sync involved. It's built for personal/self-hosted use
+rather than app-store distribution — see [Configuration](#configuration)
+for what that means for the AI Stylist's API key.
 
-## Features
+## ✨ Features
 
-- **Digital wardrobe** — photograph a clothing item (camera or gallery) and
-  Wardro automatically removes the background on-device, extracts its
-  dominant color, and files it under Top / Bottom / Outerwear / Shoes.
-  Items can be viewed, edited, and re-categorized later.
-- **Quick Match** — a free, fully on-device outfit generator. It matches
-  colors using Sanzo Wada's classic color-harmony data, with toggles for
-  outerwear/shoes inclusion and how many outfits to generate. No network
-  call, no API key required.
-- **AI Stylist** — sends your wardrobe photos to Claude (Anthropic) with a
-  chosen occasion (Casual / Smart Casual / Formal / Evening) and gets back
-  2–4 curated outfit combinations with a short rationale for each.
-- **Save & revisit outfits**, light/dark theme, and a small Settings screen.
+| | |
+|---|---|
+| 👕 **Digital wardrobe** | Photograph an item (camera or gallery); Wardro removes the background on-device, extracts its dominant color, and files it under Top / Bottom / Outerwear / Shoes |
+| 🎨 **Quick Match** | Free, fully on-device outfit generator using Sanzo Wada's classic color-harmony data — no network call, no API key |
+| 🤖 **AI Stylist** | Sends your wardrobe photos to Claude with a chosen occasion (Casual / Smart Casual / Formal / Evening) and gets back curated combinations with a rationale |
+| ⭐ **Saved outfits** | Keep the combinations you like and revisit them later |
+| ✏️ **Wardrobe editing** | Re-categorize or update items after the fact |
+| 🌗 **Theming** | Light/dark mode |
 
-## Tech stack
+## 🧱 Tech stack
 
 - **Flutter** (Dart ^3.13.2), Material 3
 - **State management:** Riverpod
@@ -36,7 +48,7 @@ stylist for occasions that matter.
 - **AI Stylist:** direct HTTPS calls to `api.anthropic.com/v1/messages`
   (Claude), no server in between
 
-## Project structure
+## 📁 Project structure
 
 ```
 lib/
@@ -44,14 +56,14 @@ lib/
   features/
     wardrobe/      # add/edit/view clothing items, background removal
     outfits/       # Quick Match + AI Stylist generation, saved outfits
-    settings/       # theme, about
+    settings/      # theme, about
 ```
 
 Each feature follows a `domain / data / application / presentation`
 split — plain models, repositories (Hive-backed), Riverpod providers, and
 screens/widgets, respectively.
 
-## App icon
+## 🖼️ App icon
 
 Clay/cream split background with a navy hanger mark and three color-swatch
 dots. The 1024×1024 master and the Play Store listing icon (512×512, flat)
@@ -60,7 +72,7 @@ live in `android/app/src/main/res/mipmap-*` (legacy + adaptive icon layers)
 and `ios/Runner/Assets.xcassets/AppIcon.appiconset` (full 18-size set,
 including the App Store marketing icon).
 
-## Getting started
+## 🚀 Getting started
 
 ### Prerequisites
 
@@ -108,13 +120,29 @@ revisiting — see the code comments in `lib/core/config/app_config.dart` and
 flutter run --dart-define-from-file=dart_define.json
 ```
 
-## Roadmap
+## 🧭 Status
+
+See [CHANGELOG.md](CHANGELOG.md) for what's actually shipped, release by
+release. The version shown in Settings is read from the installed build's
+own metadata (via `package_info_plus`), which Flutter generates from
+`pubspec.yaml`'s `version:` field — so it's always accurate, nothing to
+sync by hand.
+
+## 🗺️ Roadmap
 
 - Weather/season-aware outfit suggestions
 - Backup/export from Settings
 - BYOK (per-user Anthropic key via Settings), if this ever moves beyond
   personal use
 
-## License
+## ☕ Support
+
+If Wardro is useful to you, consider buying me a coffee:
+
+<a href="https://ko-fi.com/crystaxit">
+  <img src="https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge" alt="Support on Ko-fi" />
+</a>
+
+## 📄 License
 
 MIT — see [LICENSE](LICENSE).
