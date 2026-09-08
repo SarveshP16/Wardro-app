@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
+## [1.0.0] - 2026-09-08
+
+### Added
+- Real app icon (clay/cream split background, navy hanger mark, color-swatch
+  dots) for both Android (legacy + adaptive icon) and iOS (full
+  `AppIcon.appiconset`), replacing the Flutter default. Master files kept at
+  `assets/branding/`.
+
+### Changed
+- Version bumped to 1.0.0. The Settings screen's version string
+  (`lib/features/settings/application/settings_providers.dart`) reads it via
+  `package_info_plus` from the native build metadata, which Flutter
+  generates from this file's `version:` field at build time — so it always
+  reflects whatever's in `pubspec.yaml`, nothing to keep in sync by hand.
+
 ## [0.1.0] - 2026-09-08
 
 Initial snapshot: digital wardrobe with background removal, two outfit

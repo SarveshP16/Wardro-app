@@ -1,7 +1,7 @@
 name: wardro_app
 description: "Wardro — AI-powered outfit generator and digital wardrobe."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.13.2

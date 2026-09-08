@@ -1,5 +1,7 @@
 # Wardro
 
+<img src="assets/branding/app_icon.png" alt="Wardro app icon" width="120" height="120">
+
 A personal digital wardrobe and outfit generator, built with Flutter. Snap a
 photo of a clothing item, Wardro cuts it out and files it away, and then
 helps you put outfits together — either instantly on-device or with an AI
@@ -48,6 +50,15 @@ lib/
 Each feature follows a `domain / data / application / presentation`
 split — plain models, repositories (Hive-backed), Riverpod providers, and
 screens/widgets, respectively.
+
+## App icon
+
+Clay/cream split background with a navy hanger mark and three color-swatch
+dots. The 1024×1024 master and the Play Store listing icon (512×512, flat)
+are kept at `assets/branding/` for reference; the actual launcher assets
+live in `android/app/src/main/res/mipmap-*` (legacy + adaptive icon layers)
+and `ios/Runner/Assets.xcassets/AppIcon.appiconset` (full 18-size set,
+including the App Store marketing icon).
 
 ## Getting started
 
