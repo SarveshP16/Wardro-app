@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
+## [2.0.0] - 2026-09-22
+
+### Changed
+- **Rebuilt Wardro from scratch as a self-hosted web app.** The Flutter
+  (Android/iOS) client, Hive local storage, and on-device ONNX background
+  removal are gone, replaced by:
+  - Next.js + TypeScript (App Router) for the UI and API routes.
+  - Postgres (via Prisma) for wardrobe items, saved outfits, and settings.
+  - A Python/FastAPI sidecar wrapping `rembg` for server-side background
+    removal (services/rembg/).
+  - Wardrobe images stored on a Docker volume instead of the device's
+    documents directory.
+  - `ANTHROPIC_API_KEY` moved server-side (read only by the `web`
+    container) instead of a client build-define, now that the app has a
+    real backend — see README.
+  - Docker Compose (`web` + `rembg` + `db`) for deployment on a
+    self-hosted box, reachable over Tailscale; installable as a PWA.
+- Outfit-generation logic (AI Stylist prompt/schema, Quick Match's
+  color-harmony scoring, the Sanzo Wada dataset) and the weather feature
+  were ported behavior-for-behavior — same outputs, new stack.
+
 ## [1.0.0] - 2026-09-08
 
 ### Added

@@ -1,0 +1,44 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      REMBG_URL: http://rembg:8000
+      IMAGES_DIR: /app/data/images
+    volumes:
+      - wardrobe-images:/app/data/images
+    depends_on:
+      db:
+        condition: service_healthy
+      rembg:
+        condition: service_started
+    restart: unless-stopped
+
+  rembg:
+    build: ./services/rembg
+    restart: unless-stopped
+
+  # Not published -- only reachable by `web`, over the internal Compose
+  # network. Access to the app itself is controlled entirely by who's on
+  # your Tailscale network (see README).
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wardro
+      POSTGRES_PASSWORD: wardro
+      POSTGRES_DB: wardro
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wardro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  wardrobe-images:

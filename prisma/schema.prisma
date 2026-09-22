@@ -1,0 +1,74 @@
+// Wardro data model — see plan at C:\Users\CrYsTAxiT\.claude\plans\rosy-herding-glade.md
+// No `imagePath` column: a ClothingItem's `id` *is* the image filename
+// (`data/images/<id>.png`, written by lib/imageStore.ts), so there's no
+// path to drift out of sync with the file on disk.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7+: the connection URL lives in prisma.config.ts (for Migrate)
+// and is passed to the PrismaClient constructor via a driver adapter
+// (for the app itself) -- see lib/db.ts. Nothing to put here anymore.
+datasource db {
+  provider = "postgresql"
+}
+
+enum Category {
+  TOP
+  BOTTOM
+  OUTERWEAR
+  SHOES
+}
+
+enum Style {
+  CASUAL
+  SMART_CASUAL
+  FORMAL
+  EVENING
+}
+
+model ClothingItem {
+  id            String   @id @default(uuid())
+  category      Category
+  name          String?
+  // Packed 0xRRGGBB, or null for items whose dominant color hasn't been
+  // computed (mirrors ClothingItem.dominantColor being nullable in the
+  // original Flutter model).
+  dominantColor Int?
+  createdAt     DateTime @default(now())
+
+  outfitLinks SavedOutfitItem[]
+
+  @@index([category])
+}
+
+model SavedOutfit {
+  id        String   @id @default(uuid())
+  style     Style
+  title     String
+  rationale String
+  createdAt DateTime @default(now())
+
+  items SavedOutfitItem[]
+}
+
+// Join table preserving each item's position within the outfit (the
+// Flutter model stored `itemIds` as an ordered list).
+model SavedOutfitItem {
+  outfitId String
+  itemId   String
+  position Int
+
+  outfit SavedOutfit  @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  item   ClothingItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([outfitId, itemId])
+}
+
+// Simple key-value store, replacing the Hive settings box. Currently just
+// `themeMode` ('system' | 'light' | 'dark').
+model Setting {
+  key   String @id
+  value String
+}

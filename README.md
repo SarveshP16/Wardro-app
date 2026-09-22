@@ -1,148 +1,90 @@
-<div align="center">
-
-<img src="assets/branding/app_icon.png" width="120" height="120" alt="Wardro logo" />
-
 # Wardro
 
-**Your wardrobe, styled — on-device or by Claude.**
+AI-powered outfit generator and digital wardrobe — a self-hosted web app.
+Runs as a small set of Docker containers on your own machine and is meant
+to be reached over your own [Tailscale](https://tailscale.com) network,
+installable as a PWA on your phone's home screen.
 
-[![Flutter](https://img.shields.io/badge/Flutter-3-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-3DDC84?logo=android&logoColor=white)](#)
-[![Version](https://img.shields.io/badge/Version-1.0.0-B2532D)](CHANGELOG.md)
-[![Personal use](https://img.shields.io/badge/Distribution-personal%20use-4C5B72)](#configuration)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/crystaxit)
+Wardro is built for **personal use only** — one wardrobe, no accounts, no
+public distribution. Access control is entirely at the network level:
+whoever is on your tailnet can open the app; there's no in-app login.
 
-</div>
+## What it does
 
----
+- **Wardrobe**: photograph or upload clothing items; Wardro removes the
+  background (server-side, via [rembg](https://github.com/danielgatis/rembg))
+  and tags each item's dominant color automatically.
+- **Outfits**, two engines:
+  - **Quick Match** — free, fully offline, ranks combinations from your
+    wardrobe purely by color harmony (a curated
+    [Sanzo Wada](https://en.wikipedia.org/wiki/Sanzo_Wada) palette blended
+    with a geometric hue-distance model).
+  - **AI Stylist** — sends your wardrobe photos to Claude for
+    occasion-aware, weather-aware outfit suggestions. Needs your own
+    Anthropic API key.
+- **Weather**: optional, via [Open-Meteo](https://open-meteo.com) (no API
+  key needed) and your browser's location.
+- Save the outfits you like; light/dark/system theme.
 
-A personal digital wardrobe and outfit generator, built with Flutter. Snap a
-photo of a clothing item, Wardro cuts it out and files it away, then helps
-you put outfits together — either instantly on-device, or with an AI
-stylist for occasions that matter.
+## Architecture
 
-Wardro is **local-first**: your wardrobe lives on-device in Hive, no
-account or cloud sync involved. It's built for personal/self-hosted use
-rather than app-store distribution — see [Configuration](#configuration)
-for what that means for the AI Stylist's API key.
+Three containers (`docker-compose.yml`):
 
-## ✨ Features
+| Service | What | Notes |
+|---|---|---|
+| `web` | Next.js app (UI + API routes) | The only port published (3000) |
+| `rembg` | Python/FastAPI background-removal sidecar | Internal only |
+| `db` | Postgres | Internal only |
 
-| | |
-|---|---|
-| 👕 **Digital wardrobe** | Photograph an item (camera or gallery); Wardro removes the background on-device, extracts its dominant color, and files it under Top / Bottom / Outerwear / Shoes |
-| 🎨 **Quick Match** | Free, fully on-device outfit generator using Sanzo Wada's classic color-harmony data — no network call, no API key |
-| 🤖 **AI Stylist** | Sends your wardrobe photos to Claude with a chosen occasion (Casual / Smart Casual / Formal / Evening) and gets back curated combinations with a rationale |
-| ⭐ **Saved outfits** | Keep the combinations you like and revisit them later |
-| ✏️ **Wardrobe editing** | Re-categorize or update items after the fact |
-| 🌗 **Theming** | Light/dark mode |
+Wardrobe photos live on a Docker volume (`wardrobe-images`), one PNG per
+item. Your `ANTHROPIC_API_KEY` is read only by the `web` container's
+server-side code (`lib/anthropic.ts`) — it's never sent to the browser.
 
-## 🧱 Tech stack
+## Running it
 
-- **Flutter** (Dart ^3.13.2), Material 3
-- **State management:** Riverpod
-- **Navigation:** go_router
-- **Local-first storage:** Hive (no backend, no account system)
-- **On-device background removal:** `image_background_remover`
-- **AI Stylist:** direct HTTPS calls to `api.anthropic.com/v1/messages`
-  (Claude), no server in between
-
-## 📁 Project structure
-
-```
-lib/
-  core/            # config, router, storage, theme, shared widgets
-  features/
-    wardrobe/      # add/edit/view clothing items, background removal
-    outfits/       # Quick Match + AI Stylist generation, saved outfits
-    settings/      # theme, about
-```
-
-Each feature follows a `domain / data / application / presentation`
-split — plain models, repositories (Hive-backed), Riverpod providers, and
-screens/widgets, respectively.
-
-## 🖼️ App icon
-
-Clay/cream split background with a navy hanger mark and three color-swatch
-dots. The 1024×1024 master and the Play Store listing icon (512×512, flat)
-are kept at `assets/branding/` for reference; the actual launcher assets
-live in `android/app/src/main/res/mipmap-*` (legacy + adaptive icon layers)
-and `ios/Runner/Assets.xcassets/AppIcon.appiconset` (full 18-size set,
-including the App Store marketing icon).
-
-## 🚀 Getting started
-
-### Prerequisites
-
-- Flutter SDK matching `environment.sdk` in `pubspec.yaml` (Dart ^3.13.2)
-- A device/emulator (Android or iOS) — camera access is used for adding
-  wardrobe items
-
-### Setup
-
-```bash
-flutter pub get
-```
-
-### Configuration
-
-The AI Stylist calls Anthropic directly from the app using your own API
-key, supplied at build time (never committed):
-
-1. Copy the template:
-   ```bash
-   cp dart_define.example.json dart_define.json
+1. Copy the env template and fill in your Anthropic key:
+   ```sh
+   cp .env.example .env
    ```
-2. Edit `dart_define.json` and set your real key:
-   ```json
-   { "ANTHROPIC_API_KEY": "sk-ant-..." }
+2. Build and start everything:
+   ```sh
+   docker compose up --build
    ```
-3. Always run/build with that file:
-   ```bash
-   flutter run --dart-define-from-file=dart_define.json
-   ```
+3. Open `http://localhost:3000` (or your Tailscale machine name/IP once
+   deployed) — Wardrobe tab first.
 
-`dart_define.json` is gitignored. Without it, the AI Stylist shows a
-friendly "not configured yet" error — **Quick Match works with no key at
-all.**
+To install it as a PWA: open the app in Chrome (Android) or Safari
+(iOS) over your Tailscale connection, then "Add to Home Screen" /
+"Install app".
 
-Why a key baked into the client is fine here: Wardro isn't distributed to
-other people's devices, so there's no untrusted audience to hide it from.
-If that ever changes (App Store/Play Store, or wide adoption), this needs
-revisiting — see the code comments in `lib/core/config/app_config.dart` and
-`lib/features/outfits/services/outfit_generation_service.dart`.
+### Local development (without Docker)
 
-### Running
+Needs Node 20+, a local Postgres, and a running `rembg` sidecar (or point
+`REMBG_URL` at one running elsewhere).
 
-```bash
-flutter run --dart-define-from-file=dart_define.json
+```sh
+npm install
+npx prisma migrate dev
+npm run dev
 ```
 
-## 🧭 Status
+## Project layout
 
-See [CHANGELOG.md](CHANGELOG.md) for what's actually shipped, release by
-release. The version shown in Settings is read from the installed build's
-own metadata (via `package_info_plus`), which Flutter generates from
-`pubspec.yaml`'s `version:` field — so it's always accurate, nothing to
-sync by hand.
+```
+app/                    Next.js App Router pages + API routes
+  (shell)/               bottom-nav shell: wardrobe / outfits / settings
+  api/                    server-side routes (items, outfits, images, settings)
+lib/                    ported domain logic (color harmony, Quick Match,
+                        weather, AI Stylist call, image storage) + API client
+components/             UI components, grouped by feature
+prisma/schema.prisma    data model (Postgres via Prisma)
+data/                   the Sanzo Wada color dataset (see its LICENSE.md)
+services/rembg/         the background-removal sidecar (FastAPI + rembg)
+```
 
-## 🗺️ Roadmap
+## History
 
-- Weather/season-aware outfit suggestions
-- Backup/export from Settings
-- BYOK (per-user Anthropic key via Settings), if this ever moves beyond
-  personal use
-
-## ☕ Support
-
-If Wardro is useful to you, consider buying me a coffee:
-
-<a href="https://ko-fi.com/crystaxit">
-  <img src="https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge" alt="Support on Ko-fi" />
-</a>
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
+Wardro started as a Flutter app (Android + iOS) storing everything
+on-device. It was rebuilt as this self-hosted web app to run from one
+Docker host and be reachable from every device on the user's Tailscale
+network — see `CHANGELOG.md`.
