@@ -4,6 +4,7 @@ import type {
   GeneratedOutfit,
   OutfitStyle,
   SavedOutfit,
+  Season,
   WeatherSnapshot,
 } from "./types";
 
@@ -77,6 +78,8 @@ export const api = {
     includeOuterwear: boolean;
     includeShoes: boolean;
     weather?: WeatherSnapshot | null;
+    season?: Season | null;
+    excludeCombos?: string[][];
   }) =>
     request<{ outfits: GeneratedOutfit[] }>("/api/outfits/generate/ai", {
       method: "POST",
@@ -88,7 +91,11 @@ export const api = {
       (r) => r.outfits,
     ),
 
-  saveOutfit: (data: { style: OutfitStyle; outfit: GeneratedOutfit }) =>
+  saveOutfit: (data: {
+    style: OutfitStyle;
+    season?: Season | null;
+    outfit: GeneratedOutfit;
+  }) =>
     request<{ outfit: SavedOutfit }>("/api/outfits/saved", {
       method: "POST",
       body: JSON.stringify(data),

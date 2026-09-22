@@ -7,6 +7,7 @@ import {
   ClothingItem,
   OutfitGenerationError,
   OutfitStyle,
+  Season,
   WeatherSnapshot,
 } from "@/lib/types";
 
@@ -19,11 +20,15 @@ export async function POST(request: NextRequest) {
     includeOuterwear = true,
     includeShoes = true,
     weather,
+    season,
+    excludeCombos,
   } = body as {
     style?: OutfitStyle;
     includeOuterwear?: boolean;
     includeShoes?: boolean;
     weather?: WeatherSnapshot | null;
+    season?: Season | null;
+    excludeCombos?: string[][];
   };
 
   if (!style) {
@@ -46,6 +51,8 @@ export async function POST(request: NextRequest) {
       includeOuterwear,
       includeShoes,
       weather: weather ?? null,
+      season: season ?? null,
+      excludeCombos: excludeCombos ?? [],
     });
     return NextResponse.json({ outfits });
   } catch (error) {

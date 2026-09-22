@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 
-import { STYLE_LABELS } from "@/lib/labels";
+import { SEASON_LABELS, STYLE_LABELS } from "@/lib/labels";
+import { SEASON_ICONS } from "@/lib/seasonIcons";
 import type { ClothingItem, SavedOutfit } from "@/lib/types";
 
 import { OutfitThumbnailRow } from "./OutfitThumbnailRow";
@@ -15,12 +16,19 @@ export function SavedOutfitCard({
   itemsById: Map<string, ClothingItem>;
   onDelete: () => void;
 }) {
+  const SeasonIcon = outfit.season ? SEASON_ICONS[outfit.season] : null;
   return (
     <div className="rounded-2xl border border-outline bg-surface p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-accent">
-          {STYLE_LABELS[outfit.style]}
-        </span>
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-accent">
+          <span>{STYLE_LABELS[outfit.style]}</span>
+          {outfit.season && SeasonIcon ? (
+            <span className="flex items-center gap-1 text-foreground/50">
+              <SeasonIcon size={12} />
+              {SEASON_LABELS[outfit.season]}
+            </span>
+          ) : null}
+        </div>
         <button
           onClick={onDelete}
           aria-label="Delete saved outfit"

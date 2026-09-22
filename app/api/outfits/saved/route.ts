@@ -2,12 +2,13 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { styleFromDb, styleToDb } from "@/lib/labels";
-import { GeneratedOutfit, OutfitStyle, SavedOutfit } from "@/lib/types";
+import { seasonFromDb, seasonToDb, styleFromDb, styleToDb } from "@/lib/labels";
+import { GeneratedOutfit, OutfitStyle, SavedOutfit, Season } from "@/lib/types";
 
 type SavedOutfitRow = {
   id: string;
   style: "CASUAL" | "SMART_CASUAL" | "FORMAL" | "EVENING";
+  season: "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | null;
   title: string;
   rationale: string;
   createdAt: Date;
@@ -18,6 +19,7 @@ function toSavedOutfit(row: SavedOutfitRow): SavedOutfit {
   return {
     id: row.id,
     style: styleFromDb(row.style),
+    season: seasonFromDb(row.season),
     title: row.title,
     rationale: row.rationale,
     itemIds: [...row.items]
@@ -37,8 +39,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { style, outfit } = body as {
+  const { style, season, outfit } = body as {
     style?: OutfitStyle;
+    season?: Season | null;
     outfit?: GeneratedOutfit;
   };
 
@@ -53,6 +56,7 @@ export async function POST(request: NextRequest) {
     data: {
       id: randomUUID(),
       style: styleToDb(style),
+      season: season ? seasonToDb(season) : null,
       title: outfit.title,
       rationale: outfit.rationale,
       items: {
