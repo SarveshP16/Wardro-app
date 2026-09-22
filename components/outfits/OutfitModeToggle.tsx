@@ -1,7 +1,9 @@
-export type OutfitMode = "ai" | "quickMatch";
+export type OutfitMode = "ai" | "quickMatch" | "packing";
 
 /// Port of `outfit_mode_toggle.dart` — segmented control between the
-/// free, offline Quick Match matcher and the paid AI Stylist.
+/// free, offline Quick Match matcher, the paid AI Stylist, and Packing
+/// List (also AI Stylist-backed -- see lib/anthropic.ts's
+/// generateAiPackingList -- but planning a whole trip in one call).
 export function OutfitModeToggle({
   mode,
   onChange,
@@ -19,6 +21,12 @@ export function OutfitModeToggle({
       </SegmentButton>
       <SegmentButton active={mode === "ai"} onClick={() => onChange("ai")}>
         AI Stylist
+      </SegmentButton>
+      <SegmentButton
+        active={mode === "packing"}
+        onClick={() => onChange("packing")}
+      >
+        Packing
       </SegmentButton>
     </div>
   );

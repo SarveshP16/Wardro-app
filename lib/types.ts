@@ -67,6 +67,36 @@ export interface WeatherSnapshot {
   locationLabel: string;
 }
 
+/// One day of a multi-day forecast (see lib/weather.ts's
+/// fetchTripForecastFor*, used by Packing List mode). Same shape as
+/// WeatherSnapshot minus `locationLabel` (shared across every day of a
+/// trip, so it's carried alongside the array rather than per-day) plus
+/// the date it's for.
+export interface DailyForecast {
+  /// YYYY-MM-DD.
+  date: string;
+  /// Midpoint of that day's forecast high/low.
+  temperatureCelsius: number;
+  condition: string;
+  description: string;
+}
+
+/// One day of a Packing List trip, as sent to generateAiPackingList --
+/// `weather` is null when the date falls beyond the forecast horizon (see
+/// MAX_FORECAST_DAYS_AHEAD in lib/weather.ts) or the user left live
+/// weather off, in which case the season filter is used as a fallback.
+export interface PackingDayInput {
+  date: string;
+  weather: DailyForecast | null;
+}
+
+/// One day of a generated Packing List trip.
+export interface PackingDayOutfit {
+  date: string;
+  outfit: GeneratedOutfit;
+  weather: DailyForecast | null;
+}
+
 export class OutfitGenerationError extends Error {}
 export class WeatherError extends Error {}
 export class BackgroundRemovalError extends Error {}

@@ -1,4 +1,4 @@
-import { WeatherError, WeatherSnapshot } from "./types";
+import { DailyForecast, WeatherError, WeatherSnapshot } from "./types";
 
 /// Port of `weather_service.dart` (OpenMeteoService) — backed by
 /// Open-Meteo (open-meteo.com), which needs no API key/signup at all for
@@ -222,4 +222,95 @@ export async function fetchWeatherForLocation(
 ): Promise<WeatherSnapshot> {
   const { latitude, longitude, label } = await geocodeLocation(query);
   return fetchWeatherAt(latitude, longitude, label);
+}
+
+/// Open-Meteo's free forecast endpoint only covers ~16 days ahead --
+/// dates past this just come back with no data, so trips beyond it fall
+/// back to season-only hints for the extra days (see PackingDayInput).
+const MAX_FORECAST_DAYS_AHEAD = 15;
+
+export interface TripForecast {
+  locationLabel: string;
+  /// Only the requested dates that fall within the forecast horizon --
+  /// may be shorter than the requested range, or empty.
+  days: DailyForecast[];
+}
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/// Shared by both fetchTripForecastForCurrentLocation and
+/// fetchTripForecastForLocation below, same split as fetchWeatherAt.
+async function fetchDailyForecast(
+  latitude: number,
+  longitude: number,
+  startDate: string,
+  endDate: string,
+): Promise<DailyForecast[]> {
+  const today = isoDate(new Date());
+  const maxDate = isoDate(new Date(Date.now() + MAX_FORECAST_DAYS_AHEAD * 86400000));
+  if (startDate > maxDate) return []; // whole trip is beyond the horizon
+
+  const url = new URL(FORECAST_ENDPOINT);
+  url.searchParams.set("latitude", String(latitude));
+  url.searchParams.set("longitude", String(longitude));
+  url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min");
+  url.searchParams.set("temperature_unit", "celsius");
+  url.searchParams.set("timezone", "auto");
+  url.searchParams.set("start_date", startDate < today ? today : startDate);
+  url.searchParams.set("end_date", endDate > maxDate ? maxDate : endDate);
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  } catch {
+    throw new WeatherError(
+      "Could not reach the weather service. Check your connection.",
+    );
+  }
+  if (!response.ok) {
+    throw new WeatherError(`Could not fetch the forecast (${response.status}).`);
+  }
+
+  const body = await response.json();
+  const daily = body.daily ?? {};
+  const dates: string[] = daily.time ?? [];
+  const codes: number[] = daily.weather_code ?? [];
+  const highs: number[] = daily.temperature_2m_max ?? [];
+  const lows: number[] = daily.temperature_2m_min ?? [];
+
+  return dates.map((date, i) => {
+    const [condition, description] = describeWeatherCode(Number(codes[i] ?? 0));
+    const high = Number(highs[i] ?? 0);
+    const low = Number(lows[i] ?? 0);
+    return { date, temperatureCelsius: (high + low) / 2, condition, description };
+  });
+}
+
+/// Packing List's GPS path -- forecast for the given date range at the
+/// browser's current location.
+export async function fetchTripForecastForCurrentLocation(
+  startDate: string,
+  endDate: string,
+): Promise<TripForecast> {
+  const position = await resolvePosition();
+  const { latitude, longitude } = position.coords;
+  const [days, locationLabel] = await Promise.all([
+    fetchDailyForecast(latitude, longitude, startDate, endDate),
+    reverseGeocode(latitude, longitude),
+  ]);
+  return { locationLabel, days };
+}
+
+/// Packing List's manual-destination path -- forecast for the given date
+/// range at a searched place name.
+export async function fetchTripForecastForLocation(
+  query: string,
+  startDate: string,
+  endDate: string,
+): Promise<TripForecast> {
+  const { latitude, longitude, label } = await geocodeLocation(query);
+  const days = await fetchDailyForecast(latitude, longitude, startDate, endDate);
+  return { locationLabel: label, days };
 }

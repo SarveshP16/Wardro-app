@@ -11,25 +11,39 @@ import { OutfitCategoryToggles } from "@/components/outfits/OutfitCategoryToggle
 import { OutfitGeneratingView } from "@/components/outfits/OutfitGeneratingView";
 import { OutfitModeToggle, type OutfitMode } from "@/components/outfits/OutfitModeToggle";
 import { OutfitResultCard } from "@/components/outfits/OutfitResultCard";
+import { PackingDayCard } from "@/components/outfits/PackingDayCard";
 import { SavedOutfitCard } from "@/components/outfits/SavedOutfitCard";
 import { SeasonSelector } from "@/components/outfits/SeasonSelector";
 import { StyleSelector } from "@/components/outfits/StyleSelector";
+import { TripDateRangeRow } from "@/components/outfits/TripDateRangeRow";
+import { TripWeatherRow } from "@/components/outfits/TripWeatherRow";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
 import { outfitSignature } from "@/lib/outfitSignature";
-import { fetchCurrentWeather, fetchWeatherForLocation } from "@/lib/weather";
+import { MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
+import {
+  fetchCurrentWeather,
+  fetchTripForecastForCurrentLocation,
+  fetchTripForecastForLocation,
+  fetchWeatherForLocation,
+} from "@/lib/weather";
 import type {
   ClothingItem,
+  DailyForecast,
   GeneratedOutfit,
   OutfitStyle,
+  PackingDayInput,
+  PackingDayOutfit,
   SavedOutfit,
   Season,
   WeatherSnapshot,
 } from "@/lib/types";
+import { OutfitGenerationError } from "@/lib/types";
 
-/// Port of `outfits_screen.dart` — the two outfit-generation engines
-/// (AI Stylist, Quick Match) plus the saved-outfits list beneath them.
+/// Port of `outfits_screen.dart` — the outfit-generation engines (AI
+/// Stylist, Quick Match, Packing List) plus the saved-outfits list
+/// beneath them.
 export default function OutfitsPage() {
   const [items, setItems] = useState<ClothingItem[] | null>(null);
   const [savedOutfits, setSavedOutfits] = useState<SavedOutfit[] | null>(null);
@@ -45,6 +59,14 @@ export default function OutfitsPage() {
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+
+  // Packing List only -- see TripDateRangeRow/TripWeatherRow below.
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [tripStart, setTripStart] = useState(today);
+  const [tripEnd, setTripEnd] = useState(today);
+  const [tripWeatherEnabled, setTripWeatherEnabled] = useState(true);
+  const [tripDestination, setTripDestination] = useState<string | null>(null);
+  const [packingResult, setPackingResult] = useState<PackingDayOutfit[] | null>(null);
 
   const [generating, setGenerating] = useState(false);
   const [generatedOutfits, setGeneratedOutfits] = useState<GeneratedOutfit[] | null>(
@@ -109,35 +131,85 @@ export default function OutfitsPage() {
     void loadCurrentLocationWeather();
   }
 
+  async function handleGeneratePackingList() {
+    const dates = tripDateRange(tripStart, tripEnd);
+    if (dates.length === 0) {
+      throw new OutfitGenerationError("Pick a valid date range.");
+    }
+    if (dates.length > MAX_TRIP_DAYS) {
+      throw new OutfitGenerationError(`Trips are limited to ${MAX_TRIP_DAYS} days.`);
+    }
+
+    // Weather is best-effort for a trip -- if the lookup fails (no
+    // permission, unknown place, offline), fall back to season-only
+    // hints for every day rather than failing the whole plan.
+    let forecastByDate = new Map<string, DailyForecast>();
+    if (tripWeatherEnabled) {
+      try {
+        const forecast = tripDestination
+          ? await fetchTripForecastForLocation(tripDestination, dates[0], dates[dates.length - 1])
+          : await fetchTripForecastForCurrentLocation(dates[0], dates[dates.length - 1]);
+        forecastByDate = new Map(forecast.days.map((day) => [day.date, day]));
+      } catch {
+        // Ignored -- see comment above.
+      }
+    }
+
+    const days: PackingDayInput[] = dates.map((date) => ({
+      date,
+      weather: forecastByDate.get(date) ?? null,
+    }));
+
+    const result = await api.generatePackingList({
+      style,
+      includeOuterwear,
+      includeShoes,
+      season,
+      days,
+      excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
+    });
+    setPackingResult(result);
+    setSeenSignatures((prev) => {
+      const next = new Set(prev);
+      for (const day of result) next.add(outfitSignature(day.outfit.itemIds));
+      return next;
+    });
+  }
+
   async function handleGenerate() {
     if (!items) return;
     setGenerating(true);
     setGenerateError(null);
     setGeneratedOutfits(null);
+    setPackingResult(null);
     try {
-      const outfits =
-        mode === "ai"
-          ? await api.generateAiOutfits({
-              style,
-              includeOuterwear,
-              includeShoes,
-              weather: weatherEnabled ? weather : null,
-              season,
-              excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
-            })
-          : generateQuickMatchOutfits({
-              items,
-              count,
-              includeOuterwear,
-              includeShoes,
-              excludeSignatures: seenSignatures,
-            });
-      setGeneratedOutfits(outfits);
-      setSeenSignatures((prev) => {
-        const next = new Set(prev);
-        for (const outfit of outfits) next.add(outfitSignature(outfit.itemIds));
-        return next;
-      });
+      if (mode === "packing") {
+        await handleGeneratePackingList();
+      } else {
+        const outfits =
+          mode === "ai"
+            ? await api.generateAiOutfits({
+                style,
+                includeOuterwear,
+                includeShoes,
+                weather: weatherEnabled ? weather : null,
+                season,
+                excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
+              })
+            : generateQuickMatchOutfits({
+                items,
+                count,
+                includeOuterwear,
+                includeShoes,
+                excludeSignatures: seenSignatures,
+              });
+        setGeneratedOutfits(outfits);
+        setSeenSignatures((prev) => {
+          const next = new Set(prev);
+          for (const outfit of outfits) next.add(outfitSignature(outfit.itemIds));
+          return next;
+        });
+      }
     } catch (err) {
       setGenerateError(
         err instanceof Error ? err.message : "Outfit generation failed.",
@@ -166,6 +238,8 @@ export default function OutfitsPage() {
   }
 
   const noItems = items !== null && items.length === 0;
+  const tripDayCount = mode === "packing" ? tripDateRange(tripStart, tripEnd).length : 0;
+  const tripInvalid = mode === "packing" && (tripDayCount === 0 || tripDayCount > MAX_TRIP_DAYS);
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -192,6 +266,24 @@ export default function OutfitsPage() {
             onUseCurrentLocation={loadCurrentLocationWeather}
             onSearchLocation={searchLocationWeather}
           />
+        ) : mode === "packing" ? (
+          <>
+            <TripDateRangeRow
+              startDate={tripStart}
+              endDate={tripEnd}
+              maxDays={MAX_TRIP_DAYS}
+              onChange={(start, end) => {
+                setTripStart(start);
+                setTripEnd(end);
+              }}
+            />
+            <TripWeatherRow
+              enabled={tripWeatherEnabled}
+              destination={tripDestination}
+              onToggle={() => setTripWeatherEnabled((v) => !v)}
+              onDestinationChange={setTripDestination}
+            />
+          </>
         ) : (
           <CountStepper value={count} onChange={setCount} max={MAX_RESULT_COUNT} />
         )}
@@ -200,14 +292,16 @@ export default function OutfitsPage() {
       <div className="px-5 py-4">
         <Button
           onClick={handleGenerate}
-          disabled={generating || noItems}
+          disabled={generating || noItems || tripInvalid}
           className="w-full"
         >
           {generating
             ? "Generating…"
             : mode === "ai"
               ? "Ask the AI Stylist"
-              : "Generate outfits"}
+              : mode === "packing"
+                ? "Plan the trip"
+                : "Generate outfits"}
         </Button>
         {noItems ? (
           <p className="mt-2 text-center text-xs text-foreground/50">
@@ -222,6 +316,18 @@ export default function OutfitsPage() {
 
       {generating ? (
         <OutfitGeneratingView />
+      ) : mode === "packing" && packingResult && packingResult.length > 0 ? (
+        <div className="flex flex-col gap-3 px-5 pb-6">
+          {packingResult.map((day) => (
+            <PackingDayCard
+              key={day.date}
+              day={day}
+              itemsById={itemsById}
+              saved={savedSignatures.has(outfitSignature(day.outfit.itemIds))}
+              onSave={() => handleSaveOutfit(day.outfit)}
+            />
+          ))}
+        </div>
       ) : generatedOutfits && generatedOutfits.length > 0 ? (
         <div className="flex flex-col gap-3 px-5 pb-6">
           {generatedOutfits.map((outfit, index) => (

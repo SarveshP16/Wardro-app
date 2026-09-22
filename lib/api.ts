@@ -3,6 +3,8 @@ import type {
   ClothingItem,
   GeneratedOutfit,
   OutfitStyle,
+  PackingDayInput,
+  PackingDayOutfit,
   SavedOutfit,
   Season,
   WeatherSnapshot,
@@ -85,6 +87,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }).then((r) => r.outfits),
+
+  generatePackingList: (data: {
+    style: OutfitStyle;
+    includeOuterwear: boolean;
+    includeShoes: boolean;
+    season?: Season | null;
+    days: PackingDayInput[];
+    excludeCombos?: string[][];
+  }) =>
+    request<{ days: PackingDayOutfit[] }>("/api/outfits/generate/packing", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).then((r) => r.days),
 
   listSavedOutfits: () =>
     request<{ outfits: SavedOutfit[] }>("/api/outfits/saved").then(
