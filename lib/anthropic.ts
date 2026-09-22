@@ -1,12 +1,14 @@
 import sharp from "sharp";
 
 import { readImage } from "./imageStore";
-import { STYLE_LABELS } from "./labels";
+import { SEASON_LABELS, STYLE_LABELS } from "./labels";
+import { outfitSignature } from "./outfitSignature";
 import {
   ClothingItem,
   GeneratedOutfit,
   OutfitGenerationError,
   OutfitStyle,
+  Season,
   WeatherSnapshot,
 } from "./types";
 
@@ -62,6 +64,13 @@ export interface GenerateAiOutfitsOptions {
   includeOuterwear?: boolean;
   includeShoes?: boolean;
   weather?: WeatherSnapshot | null;
+  /// null/omitted means no season preference ("any season").
+  season?: Season | null;
+  /// Item-id sets already suggested earlier this session (across either
+  /// engine) -- see outfits/page.tsx's `seenSignatures`. Claude is asked
+  /// not to repeat these, and any it returns anyway are filtered out
+  /// defensively (see `parseOutfits`).
+  excludeCombos?: string[][];
 }
 
 async function resizeForApi(bytes: Buffer): Promise<Buffer> {
@@ -84,6 +93,8 @@ export async function generateAiOutfits(
     includeOuterwear = true,
     includeShoes = true,
     weather = null,
+    season = null,
+    excludeCombos = [],
   } = options;
 
   if (items.length === 0) {
@@ -124,14 +135,29 @@ export async function generateAiOutfits(
       "and avoid anything impractical for the conditions)."
     : "";
 
+  const seasonHint = season
+    ? ` It is currently ${SEASON_LABELS[season].toLowerCase()} -- factor ` +
+      "the season into fabric weight, layering, and color choices " +
+      "alongside the occasion."
+    : "";
+
+  const avoidHint =
+    excludeCombos.length > 0
+      ? " Avoid exactly repeating any of these item-id combinations, " +
+        "already suggested earlier: " +
+        excludeCombos.map((ids) => `[${ids.join(", ")}]`).join("; ") +
+        " -- propose different combinations instead."
+      : "";
+
   const content: ContentBlock[] = [
     {
       type: "text",
       text:
         `You are a fashion stylist choosing outfits from a user's own ` +
-        `wardrobe for a '${styleLabel}' occasion.${weatherHint} Each image ` +
-        "below is one wardrobe item; its id and category are given right " +
-        "before it. Only ever use the item ids provided -- never invent one.",
+        `wardrobe for a '${styleLabel}' occasion.${weatherHint}${seasonHint} ` +
+        "Each image below is one wardrobe item; its id and category are " +
+        "given right before it. Only ever use the item ids provided -- " +
+        `never invent one.${avoidHint}`,
     },
   ];
 
@@ -152,6 +178,14 @@ export async function generateAiOutfits(
     });
   }
 
+  const appropriatenessFactors = [
+    "the occasion",
+    weather ? "weather" : null,
+    season ? "season" : null,
+  ]
+    .filter((factor): factor is string => factor !== null)
+    .join(" and ");
+
   content.push({
     type: "text",
     text:
@@ -159,7 +193,7 @@ export async function generateAiOutfits(
       `to a ${styleLabel} occasion, each using 2-4 of the items above (mix ` +
       `categories sensibly: ${categoryHint}). Favor combinations that ` +
       "genuinely look good together -- color and pattern harmony, and " +
-      `appropriateness for the occasion${weather ? " and weather" : ""}.`,
+      `appropriateness for ${appropriatenessFactors}.`,
   });
 
   let response: Response;
@@ -200,8 +234,9 @@ export async function generateAiOutfits(
     throw new OutfitGenerationError(message);
   }
 
+  const excludeSignatures = new Set(excludeCombos.map(outfitSignature));
   const body = await response.json();
-  const outfits = parseOutfits(body, validIds);
+  const outfits = parseOutfits(body, validIds, excludeSignatures);
   if (outfits.length === 0) {
     throw new OutfitGenerationError(
       "Could not put together an outfit from these items. Try a different style.",
@@ -213,6 +248,7 @@ export async function generateAiOutfits(
 function parseOutfits(
   body: Record<string, unknown>,
   validIds: Set<string>,
+  excludeSignatures: Set<string>,
 ): GeneratedOutfit[] {
   if (body.stop_reason === "refusal") {
     throw new OutfitGenerationError(
@@ -238,17 +274,19 @@ function parseOutfits(
   };
   const rawOutfits = parsed.outfits ?? [];
 
-  // Defensive: drop any hallucinated item id and any outfit left empty by that.
+  // Defensive: drop any hallucinated item id, any outfit left empty by
+  // that, and any exact repeat of a combination Claude was asked to avoid
+  // (the prompt hint above is usually enough, but isn't guaranteed).
   const cleaned: GeneratedOutfit[] = [];
   for (const raw of rawOutfits) {
     const itemIds = (raw.itemIds ?? []).filter((id) => validIds.has(id));
-    if (itemIds.length > 0) {
-      cleaned.push({
-        title: raw.title ?? "Outfit",
-        rationale: raw.rationale ?? "",
-        itemIds,
-      });
-    }
+    if (itemIds.length === 0) continue;
+    if (excludeSignatures.has(outfitSignature(itemIds))) continue;
+    cleaned.push({
+      title: raw.title ?? "Outfit",
+      rationale: raw.rationale ?? "",
+      itemIds,
+    });
   }
   return cleaned;
 }

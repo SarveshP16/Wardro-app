@@ -12,16 +12,19 @@ import { OutfitGeneratingView } from "@/components/outfits/OutfitGeneratingView"
 import { OutfitModeToggle, type OutfitMode } from "@/components/outfits/OutfitModeToggle";
 import { OutfitResultCard } from "@/components/outfits/OutfitResultCard";
 import { SavedOutfitCard } from "@/components/outfits/SavedOutfitCard";
+import { SeasonSelector } from "@/components/outfits/SeasonSelector";
 import { StyleSelector } from "@/components/outfits/StyleSelector";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
-import { ColorMatchGenerator, MAX_RESULT_COUNT } from "@/lib/colorMatch";
-import { fetchCurrentWeather } from "@/lib/weather";
+import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
+import { outfitSignature } from "@/lib/outfitSignature";
+import { fetchCurrentWeather, fetchWeatherForLocation } from "@/lib/weather";
 import type {
   ClothingItem,
   GeneratedOutfit,
   OutfitStyle,
   SavedOutfit,
+  Season,
   WeatherSnapshot,
 } from "@/lib/types";
 
@@ -33,6 +36,7 @@ export default function OutfitsPage() {
 
   const [mode, setMode] = useState<OutfitMode>("quickMatch");
   const [style, setStyle] = useState<OutfitStyle>("casual");
+  const [season, setSeason] = useState<Season | null>(null);
   const [includeOuterwear, setIncludeOuterwear] = useState(true);
   const [includeShoes, setIncludeShoes] = useState(true);
   const [count, setCount] = useState(3);
@@ -49,11 +53,11 @@ export default function OutfitsPage() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [savedSignatures, setSavedSignatures] = useState<Set<string>>(new Set());
 
-  // Session-scoped, like the Dart ColorMatchOutfitGenerationService
-  // instance -- avoids repeating the previous batch across consecutive
-  // "Generate" taps. Lazy useState initializer (rather than a ref) so it's
-  // constructed exactly once without touching ref.current during render.
-  const [quickMatch] = useState(() => new ColorMatchGenerator());
+  // Every outfit-item-set shown this session, across BOTH engines --
+  // excluded on generation so consecutive (and mode-switching) "Generate"
+  // taps keep surfacing fresh combinations instead of repeating. See
+  // lib/outfitSignature.ts.
+  const [seenSignatures, setSeenSignatures] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     api.listItems().then(setItems).catch(() => setItems([]));
@@ -68,12 +72,7 @@ export default function OutfitsPage() {
     [items],
   );
 
-  async function toggleWeather() {
-    if (weatherEnabled) {
-      setWeatherEnabled(false);
-      return;
-    }
-    setWeatherEnabled(true);
+  async function loadCurrentLocationWeather() {
     setWeatherLoading(true);
     setWeatherError(null);
     try {
@@ -82,10 +81,32 @@ export default function OutfitsPage() {
       setWeatherError(
         err instanceof Error ? err.message : "Could not fetch weather.",
       );
-      setWeatherEnabled(false);
     } finally {
       setWeatherLoading(false);
     }
+  }
+
+  async function searchLocationWeather(query: string) {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      setWeather(await fetchWeatherForLocation(query));
+    } catch (err) {
+      setWeatherError(
+        err instanceof Error ? err.message : "Could not fetch weather.",
+      );
+    } finally {
+      setWeatherLoading(false);
+    }
+  }
+
+  function toggleWeather() {
+    if (weatherEnabled) {
+      setWeatherEnabled(false);
+      return;
+    }
+    setWeatherEnabled(true);
+    void loadCurrentLocationWeather();
   }
 
   async function handleGenerate() {
@@ -101,14 +122,22 @@ export default function OutfitsPage() {
               includeOuterwear,
               includeShoes,
               weather: weatherEnabled ? weather : null,
+              season,
+              excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
             })
-          : quickMatch.generate({
+          : generateQuickMatchOutfits({
               items,
               count,
               includeOuterwear,
               includeShoes,
+              excludeSignatures: seenSignatures,
             });
       setGeneratedOutfits(outfits);
+      setSeenSignatures((prev) => {
+        const next = new Set(prev);
+        for (const outfit of outfits) next.add(outfitSignature(outfit.itemIds));
+        return next;
+      });
     } catch (err) {
       setGenerateError(
         err instanceof Error ? err.message : "Outfit generation failed.",
@@ -119,9 +148,9 @@ export default function OutfitsPage() {
   }
 
   async function handleSaveOutfit(outfit: GeneratedOutfit) {
-    const signature = outfit.itemIds.join(",");
+    const signature = outfitSignature(outfit.itemIds);
     try {
-      const saved = await api.saveOutfit({ style, outfit });
+      const saved = await api.saveOutfit({ style, season, outfit });
       setSavedOutfits((prev) => [saved, ...(prev ?? [])]);
       setSavedSignatures((prev) => new Set(prev).add(signature));
     } catch (err) {
@@ -146,6 +175,7 @@ export default function OutfitsPage() {
 
       <div className="mt-4 flex flex-col gap-2">
         <StyleSelector value={style} onChange={setStyle} />
+        <SeasonSelector value={season} onChange={setSeason} />
         <OutfitCategoryToggles
           includeOuterwear={includeOuterwear}
           includeShoes={includeShoes}
@@ -159,6 +189,8 @@ export default function OutfitsPage() {
             loading={weatherLoading}
             error={weatherError}
             onToggle={toggleWeather}
+            onUseCurrentLocation={loadCurrentLocationWeather}
+            onSearchLocation={searchLocationWeather}
           />
         ) : (
           <CountStepper value={count} onChange={setCount} max={MAX_RESULT_COUNT} />
@@ -197,7 +229,7 @@ export default function OutfitsPage() {
               key={index}
               outfit={outfit}
               itemsById={itemsById}
-              saved={savedSignatures.has(outfit.itemIds.join(","))}
+              saved={savedSignatures.has(outfitSignature(outfit.itemIds))}
               onSave={() => handleSaveOutfit(outfit)}
             />
           ))}

@@ -28,6 +28,13 @@ enum Style {
   EVENING
 }
 
+enum Season {
+  SPRING
+  SUMMER
+  AUTUMN
+  WINTER
+}
+
 model ClothingItem {
   id            String   @id @default(uuid())
   category      Category
@@ -46,6 +53,9 @@ model ClothingItem {
 model SavedOutfit {
   id        String   @id @default(uuid())
   style     Style
+  // null means the outfit was generated/saved without a season filter
+  // ("Any season").
+  season    Season?
   title     String
   rationale String
   createdAt DateTime @default(now())

@@ -10,6 +10,7 @@ import { WeatherError, WeatherSnapshot } from "./types";
 const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
 const REVERSE_GEOCODE_ENDPOINT =
   "https://api.bigdatacloud.net/data/reverse-geocode-client";
+const GEOCODE_ENDPOINT = "https://geocoding-api.open-meteo.com/v1/search";
 
 /// Maps Open-Meteo's WMO weather codes to a broad condition bucket plus a
 /// short human description. See
@@ -122,10 +123,15 @@ async function reverseGeocode(
   }
 }
 
-export async function fetchCurrentWeather(): Promise<WeatherSnapshot> {
-  const position = await resolvePosition();
-  const { latitude, longitude } = position.coords;
-
+/// Shared by both `fetchCurrentWeather` (GPS) and `fetchWeatherForLocation`
+/// (manual search) below. `locationLabel`, when given, skips the
+/// reverse-geocode call -- manual search already has a human-readable
+/// name from `geocodeLocation`.
+async function fetchWeatherAt(
+  latitude: number,
+  longitude: number,
+  locationLabel?: string,
+): Promise<WeatherSnapshot> {
   const url = new URL(FORECAST_ENDPOINT);
   url.searchParams.set("latitude", String(latitude));
   url.searchParams.set("longitude", String(longitude));
@@ -154,6 +160,66 @@ export async function fetchCurrentWeather(): Promise<WeatherSnapshot> {
     temperatureCelsius: Number(current.temperature_2m ?? 0),
     condition,
     description,
-    locationLabel: await reverseGeocode(latitude, longitude),
+    locationLabel: locationLabel ?? (await reverseGeocode(latitude, longitude)),
   };
+}
+
+export async function fetchCurrentWeather(): Promise<WeatherSnapshot> {
+  const position = await resolvePosition();
+  return fetchWeatherAt(position.coords.latitude, position.coords.longitude);
+}
+
+/// Forward-geocodes a free-text place name (via Open-Meteo's geocoding
+/// API -- key-less, same as the forecast API) to coordinates + a
+/// canonical display name.
+async function geocodeLocation(
+  query: string,
+): Promise<{ latitude: number; longitude: number; label: string }> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    throw new WeatherError("Enter a location to search for.");
+  }
+
+  const url = new URL(GEOCODE_ENDPOINT);
+  url.searchParams.set("name", trimmed);
+  url.searchParams.set("count", "1");
+  url.searchParams.set("language", "en");
+  url.searchParams.set("format", "json");
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  } catch {
+    throw new WeatherError(
+      "Could not reach the location search. Check your connection.",
+    );
+  }
+  if (!response.ok) {
+    throw new WeatherError("Could not search for that location.");
+  }
+
+  const body = await response.json();
+  const result = body.results?.[0];
+  if (!result) {
+    throw new WeatherError(`Could not find "${trimmed}". Try a different search.`);
+  }
+
+  const label = [result.name, result.admin1, result.country]
+    .filter((part): part is string => typeof part === "string" && part.length > 0)
+    .join(", ");
+
+  return {
+    latitude: result.latitude,
+    longitude: result.longitude,
+    label: label || trimmed,
+  };
+}
+
+/// Manual-location counterpart to `fetchCurrentWeather` -- geocodes the
+/// given place name, then fetches weather for it, same as the GPS path.
+export async function fetchWeatherForLocation(
+  query: string,
+): Promise<WeatherSnapshot> {
+  const { latitude, longitude, label } = await geocodeLocation(query);
+  return fetchWeatherAt(latitude, longitude, label);
 }

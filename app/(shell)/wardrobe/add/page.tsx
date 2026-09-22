@@ -53,6 +53,7 @@ export default function AddItemPage() {
   async function handleSave(data: {
     category: ClothingCategory;
     name: string | null;
+    cutout: string;
   }) {
     if (!current) return;
     setSaving(true);
@@ -61,7 +62,7 @@ export default function AddItemPage() {
         category: data.category,
         name: data.name,
         dominantColor: current.dominantColor,
-        cutout: current.cutout,
+        cutout: data.cutout,
       });
       setSavedCount((n) => n + 1);
       await processQueue(remaining.slice(1));

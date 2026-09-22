@@ -31,6 +31,13 @@ export const OUTFIT_STYLES: OutfitStyle[] = [
   "evening",
 ];
 
+/// Optional season filter for outfit generation -- the AI Stylist factors
+/// it into fabric/layering/color choices (see lib/anthropic.ts); Quick
+/// Match ignores it, same as it already ignores `style`.
+export type Season = "spring" | "summer" | "autumn" | "winter";
+
+export const SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
+
 /// One outfit combination proposed by a single generation call. Ephemeral
 /// — not persisted unless the user saves it (see SavedOutfit).
 export interface GeneratedOutfit {
@@ -43,6 +50,7 @@ export interface GeneratedOutfit {
 export interface SavedOutfit {
   id: string;
   style: OutfitStyle;
+  season: Season | null;
   title: string;
   rationale: string;
   itemIds: string[];
