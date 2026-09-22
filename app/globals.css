@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* next-themes toggles a `dark` class on <html>; tell Tailwind v4 to key
+   its dark: variant off that instead of prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Wardro's brand palette — the "editorial boutique" mood carried over
+   from the original app's AppColors: warm ivory neutrals, near-black ink
+   for text, and a terracotta accent, with sage/slate/ochre as secondary
+   tones for the four clothing categories. */
+:root {
+  --color-background: #faf6f0; /* ivory */
+  --color-surface: #ffffff;
+  --color-outline: #ece4d8;
+  --color-foreground: #211d1a; /* ink */
+  --color-accent: #b2532d; /* terracotta */
+  --color-accent-strong: #d97b52;
+
+  /* Fixed backdrop for cutout PNGs (which have transparent backgrounds):
+     stays constant in both themes so dark garments don't disappear into
+     a near-black card in dark mode. */
+  --color-photo-backdrop: #efe7d8;
+
+  --color-category-top: #b2532d;
+  --color-category-bottom: #4c5b72;
+  --color-category-outerwear: #b8862b;
+  --color-category-shoes: #5b6b4f;
+}
+
+:root.dark {
+  --color-background: #1b1917; /* charcoal */
+  --color-surface: #242220;
+  --color-outline: #3a362f;
+  --color-foreground: #f5efe6;
+  --color-accent: #d97b52;
+  --color-accent-strong: #e8996f;
+
+  --color-category-top: #d97b52;
+  --color-category-bottom: #7488a6;
+  --color-category-outerwear: #d4a63d;
+  --color-category-shoes: #7c8f6c;
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-outline: var(--color-outline);
+  --color-foreground: var(--color-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-photo-backdrop: var(--color-photo-backdrop);
+  --color-category-top: var(--color-category-top);
+  --color-category-bottom: var(--color-category-bottom);
+  --color-category-outerwear: var(--color-category-outerwear);
+  --color-category-shoes: var(--color-category-shoes);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-fraunces);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+* {
+  border-color: var(--color-outline);
+}
