@@ -82,6 +82,12 @@ data/                   the Sanzo Wada color dataset (see its LICENSE.md)
 services/rembg/         the background-removal sidecar (FastAPI + rembg)
 ```
 
+## Support
+
+If Vital Loop is useful to you, you can support its development on Ko-fi:
+[ko-fi.com/crystaxit](https://ko-fi.com/crystaxit).
+
+
 ## History
 
 Wardro started as a Flutter app (Android + iOS) storing everything
