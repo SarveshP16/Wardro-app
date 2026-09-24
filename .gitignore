@@ -42,3 +42,12 @@ next-env.d.ts
 # IDE
 .idea/
 *.iml
+
+# Android: generated from WARDRO_SERVER_URL by scripts/android-prepare.mjs
+/android-shell/config.js
+
+# Android release signing -- never commit these; losing them means you can
+# never ship an update to the installed app, so back them up privately.
+*.jks
+*.keystore
+android/keystore.properties

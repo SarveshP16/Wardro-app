@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wardro</string>
+    <string name="title_activity_main">Wardro</string>
+    <string name="package_name">com.wardro.app</string>
+    <string name="custom_url_scheme">com.wardro.app</string>
+</resources>

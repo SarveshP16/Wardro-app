@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wardro</title>
+    <!-- Capacitor requires a local index.html, but the Android app loads
+         WARDRO_SERVER_URL instead (see capacitor.config.ts), so this is
+         never normally shown. -->
+    <script src="config.js"></script>
+    <script>
+      if (window.WARDRO_SERVER_URL) window.location.replace(window.WARDRO_SERVER_URL);
+    </script>
+  </head>
+  <body></body>
+</html>

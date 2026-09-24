@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
+## [Unreleased]
+
+### Changed
+- **Android app instead of a PWA.** A Capacitor shell (`android/`) that
+  loads the same Docker-hosted server over Tailscale (`WARDRO_SERVER_URL`
+  in `.env`), with a native "can't reach Wardro" page when the server or
+  tailnet is unavailable. Build with `npm run android:release`.
+- Removed the service worker and web app manifest.
+
 ## [2.0.0] - 2026-09-22
 
 ### Changed

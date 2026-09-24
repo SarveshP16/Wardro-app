@@ -8,3 +8,6 @@ npm-debug.log*
 *.md
 .idea
 .vscode
+android
+android-shell
+capacitor.config.ts

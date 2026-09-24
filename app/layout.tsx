@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 
 import "./globals.css";
-import { ServiceWorkerRegistration } from "./service-worker-registration";
 import { ThemeProvider } from "./theme-provider";
 
 // Wardro's font pairing, ported from app_typography.dart: Fraunces (a
@@ -20,12 +19,6 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Wardro",
   description: "AI-powered outfit generator and digital wardrobe.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Wardro",
-  },
 };
 
 export const viewport: Viewport = {
@@ -49,7 +42,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
         <ThemeProvider>
           {children}
-          <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>
     </html>

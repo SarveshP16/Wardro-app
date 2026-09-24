@@ -9,9 +9,16 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "android:sync": "node scripts/android-prepare.mjs && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:apk": "npm run android:sync && android\\gradlew.bat -p android assembleDebug",
+    "android:release": "npm run android:sync && android\\gradlew.bat -p android assembleRelease"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "lucide-react": "^1.47.0",
@@ -24,6 +31,7 @@
     "sharp": "^0.35.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
