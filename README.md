@@ -84,7 +84,7 @@ services/rembg/         the background-removal sidecar (FastAPI + rembg)
 
 ## Support
 
-If Vital Loop is useful to you, you can support its development on Ko-fi:
+If Wardro App is useful to you, you can support its development on Ko-fi:
 [ko-fi.com/crystaxit](https://ko-fi.com/crystaxit).
 
 
