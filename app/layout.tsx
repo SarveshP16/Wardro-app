@@ -5,6 +5,7 @@ import { getActiveProfile, resolveLook } from "@/lib/profile";
 
 import "./globals.css";
 import { LookProvider } from "./look-context";
+import { ThemeColorSync } from "./theme-color-sync";
 import { ThemeProvider } from "./theme-provider";
 
 // One family per look (see app/globals.css): Archivo with its width axis,
@@ -23,7 +24,18 @@ const schibsted = Schibsted_Grotesk({
 
 export const metadata: Metadata = {
   title: "Wardro",
+  applicationName: "Wardro",
   description: "AI-powered outfit generator and digital wardrobe.",
+  // Opens full-screen (no Safari toolbar) when added to an iPhone/iPad
+  // home screen; the manifest (app/manifest.ts) does the same elsewhere.
+  appleWebApp: {
+    capable: true,
+    title: "Wardro",
+    statusBarStyle: "default",
+  },
+  // Next emits only the standard `mobile-web-app-capable`; older iOS
+  // versions still look for Apple's original name.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
@@ -34,6 +46,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // Lay out edge to edge so env(safe-area-inset-*) is reported -- the
+  // bottom nav pads itself above the iPhone home indicator.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -53,7 +68,10 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-background text-ink antialiased">
         <ThemeProvider>
-          <LookProvider look={look}>{children}</LookProvider>
+          <LookProvider look={look}>
+            <ThemeColorSync />
+            {children}
+          </LookProvider>
         </ThemeProvider>
       </body>
     </html>

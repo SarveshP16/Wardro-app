@@ -11,6 +11,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![Tailscale](https://img.shields.io/badge/Network-Tailscale-242424?logo=tailscale&logoColor=white)](https://tailscale.com)
 [![Android](https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white)](#-android-app)
+[![iOS](https://img.shields.io/badge/iOS-Home%20Screen-000000?logo=apple&logoColor=white)](#-iphone-and-ipad)
 [![Claude](https://img.shields.io/badge/AI%20Stylist-Claude-D97757?logo=anthropic&logoColor=white)](https://www.anthropic.com)
 <br />
 [![Version](https://img.shields.io/badge/Version-2.1.0-22395C)](CHANGELOG.md)
@@ -31,8 +32,8 @@ picks out its colour and files it away. Then it puts outfits together for
 you — instantly from colour theory, or with an AI stylist that knows the
 occasion and the weather. It runs as a few Docker containers on your own
 machine and is reached over your own [Tailscale](https://tailscale.com)
-network, from a browser or the Android app. Everyone in the household gets
-their own profile.
+network, from a browser, the Android app, or your iPhone's home screen.
+Everyone in the household gets their own profile.
 
 ## ✨ Features
 
@@ -128,6 +129,10 @@ Three containers (`docker-compose.yml`):
 3. Open `http://localhost:3000` (or your Tailscale machine name/IP), add
    yourself on the profile screen, and start photographing.
 
+Chrome and Edge can also **install** Wardro as its own app window — they
+offer that only over HTTPS, so use the `tailscale serve` address described
+under [iPhone and iPad](#-iphone-and-ipad).
+
 **Upgrading?** Back up the database first — migrations run on start:
 
 ```sh
@@ -208,6 +213,27 @@ Without this file, `android:release` still builds, but unsigned.
 
 </details>
 
+## 🍎 iPhone and iPad
+
+No App Store or build needed: Wardro runs from your server, so Safari adds
+it to the home screen as a full-screen app with its own icon.
+
+1. Install [Tailscale](https://tailscale.com/download/ios) on the iPhone
+   and sign in to the same tailnet as your server.
+2. In **Safari**, open your server's address (e.g. `http://100.x.y.z:3000`).
+3. Tap **Share → Add to Home Screen**.
+
+It then opens without Safari's toolbar, with the status bar matching your
+look and theme. As on Android, plain `http://` works for everything except
+"use my location" for weather — for that, run `tailscale serve --bg 3000`
+on the server once and use its `https://<machine>.<tailnet>.ts.net`
+address instead (or just type a city).
+
+> A native iOS build isn't provided: it would need a Mac with Xcode, and
+> without a paid Apple Developer account a self-installed app expires
+> after 7 days. The home-screen app is the same experience — the Android
+> APK is also just a window onto your server.
+
 ## 🔒 Access and privacy
 
 Wardro is built for **personal use** — no accounts, no public
@@ -229,6 +255,7 @@ over Tailscale (don't port-forward it to the internet). Within that:
 app/                    Next.js App Router
   (shell)/               app shell (bottom bar / sidebar): wardrobe, outfits, settings
   profiles/              the profile picker
+  manifest.ts            web app manifest (home-screen / "Install app")
   api/                   server routes: profiles, items, outfits, images, settings
 components/             UI components, grouped by feature
 lib/                    domain logic (colour harmony, Quick Match, colour names,

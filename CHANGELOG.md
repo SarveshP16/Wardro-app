@@ -8,6 +8,13 @@ it's built for personal use rather than public releases.
 
 ## [Unreleased]
 
+### Added
+- **iPhone and iPad:** add Wardro to the home screen from Safari and it
+  opens full-screen like an app (web app manifest + iOS home-screen tags).
+  Chrome and Edge also offer "Install app" (over HTTPS, e.g. via
+  `tailscale serve`). The status bar follows the
+  active look and theme, and layout respects the notch and home indicator.
+
 ### Changed
 - **New app icon**, "Spectrum hanger": a graphite hanger holding a band of
   garment colours, on off-white. Used for the Android launcher (adaptive
