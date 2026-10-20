@@ -19,8 +19,9 @@ const ICON = join(ROOT, "public", "icons", "icon-1024.png");
 // is also the part of an adaptive-icon foreground every launcher shows.
 const MASKABLE_ICON = join(ROOT, "public", "icons", "icon-maskable-512.png");
 const ANDROID_RES = join(ROOT, "android", "app", "src", "main", "res");
-// Ivory -- app/globals.css's light --color-background.
-const BACKGROUND = "#faf6f0";
+// The icon's own off-white (see public/icons/icon.svg), so the splash
+// screen and the adaptive icon's background match the icon.
+const BACKGROUND = "#f4f3f0";
 
 const serverUrl = loadServerUrl();
 writeFileSync(
@@ -56,7 +57,8 @@ if (existsSync(ANDROID_RES)) {
   }
 
   // Splash screens (pre-Android 12; 12+ draws the launcher icon instead),
-  // at the sizes Capacitor's template ships: the icon centered on ivory.
+  // at the sizes Capacitor's template ships: the icon centered on its
+  // own background colour.
   const SPLASH = {
     drawable: [480, 320],
     "drawable-land-mdpi": [480, 320],

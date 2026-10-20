@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
+## [Unreleased]
+
+### Changed
+- **New app icon**, "Spectrum hanger": a graphite hanger holding a band of
+  garment colours, on off-white. Used for the Android launcher (adaptive
+  and legacy), splash screens, favicon, and README. SVG masters live in
+  `public/icons/`.
+
 ## [2.1.0] - 2026-10-21
 
 ### Added

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Wardro app icon, maskable variant: the mark scaled into the adaptive-icon safe zone. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#f4f3f0"/>
+  <g transform="translate(512 512) scale(0.8) translate(-512 -512)">
+  <clipPath id="band"><rect x="262" y="600" width="500" height="150" rx="22"/></clipPath>
+  <g clip-path="url(#band)">
+    <rect x="262.00" y="600" width="72.43" height="150" fill="#a6522e"/>
+    <rect x="333.43" y="600" width="72.43" height="150" fill="#c79a3a"/>
+    <rect x="404.86" y="600" width="72.43" height="150" fill="#5f6a3e"/>
+    <rect x="476.29" y="600" width="72.43" height="150" fill="#2f7d74"/>
+    <rect x="547.71" y="600" width="72.43" height="150" fill="#34507a"/>
+    <rect x="619.14" y="600" width="72.43" height="150" fill="#22395c"/>
+    <rect x="690.57" y="600" width="72.43" height="150" fill="#3d3f45"/>
+  </g>
+  <g fill="none" stroke="#1c1c1c" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M454,318 A58,58 0 1 1 512,376 L512,396"/>
+    <path d="M250,606 L512,396 L774,606"/>
+  </g>
+  </g>
+</svg>
