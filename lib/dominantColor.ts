@@ -1,8 +1,7 @@
 import sharp from "sharp";
 import { packRgb } from "./color";
 
-/// Server-side port of `dominant_color_extractor.dart` — the wardrobe
-/// item's dominant color is the average RGB of its background-removed
+/// A wardrobe item's dominant color is the average RGB of its background-removed
 /// cutout's opaque pixels. Computed once, right after the rembg sidecar
 /// returns the cutout (see app/api/wardrobe/items/process/route.ts), and
 /// cached on the ClothingItem row so the client-side Quick Match matcher

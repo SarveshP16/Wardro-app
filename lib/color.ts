@@ -3,13 +3,13 @@
 /// 0xRRGGBB int throughout (analogous to Dart's `Color.toARGB32()`, minus
 /// the alpha byte since every dominant color here is fully opaque).
 
-export interface Rgb {
+interface Rgb {
   r: number;
   g: number;
   b: number;
 }
 
-export interface Hsl {
+interface Hsl {
   h: number; // 0..360
   s: number; // 0..1
   l: number; // 0..1
@@ -19,7 +19,7 @@ export function packRgb(r: number, g: number, b: number): number {
   return ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 }
 
-export function unpackRgb(color: number): Rgb {
+function unpackRgb(color: number): Rgb {
   return {
     r: (color >> 16) & 0xff,
     g: (color >> 8) & 0xff,
@@ -27,7 +27,7 @@ export function unpackRgb(color: number): Rgb {
   };
 }
 
-export function rgbToHsl(r: number, g: number, b: number): Hsl {
+function rgbToHsl(r: number, g: number, b: number): Hsl {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;

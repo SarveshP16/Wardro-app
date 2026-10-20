@@ -1,7 +1,6 @@
 import type { ClothingCategory, OutfitStyle, Season } from "./types";
 
-/// Display labels — mirrors ClothingCategoryX.label / OutfitStyleX.label
-/// in the original Dart code.
+/// Display labels for categories, occasion styles, and seasons.
 export const CATEGORY_LABELS: Record<ClothingCategory, string> = {
   top: "Top",
   bottom: "Bottom",
@@ -21,18 +20,6 @@ export const SEASON_LABELS: Record<Season, string> = {
   summer: "Summer",
   autumn: "Autumn",
   winter: "Winter",
-};
-
-/// Category accent colors (light/dark), ported from AppColors —
-/// terracotta / slate blue / ochre / sage.
-export const CATEGORY_COLORS: Record<
-  ClothingCategory,
-  { light: string; dark: string }
-> = {
-  top: { light: "#B2532D", dark: "#D97B52" },
-  bottom: { light: "#4C5B72", dark: "#7488A6" },
-  outerwear: { light: "#B8862B", dark: "#D4A63D" },
-  shoes: { light: "#5B6B4F", dark: "#7C8F6C" },
 };
 
 /// Maps a ClothingCategory <-> the Prisma `Category` enum's SCREAMING_CASE

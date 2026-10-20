@@ -22,10 +22,10 @@ export function TripDateRangeRow({
   const tooLong = dayCount > maxDays;
 
   return (
-    <div className="flex flex-col gap-1.5 px-5 py-1">
+    <div className="flex flex-col gap-1.5 py-1">
       <div className="flex items-center gap-3 text-sm">
         <label className="flex flex-1 flex-col gap-1">
-          <span className="text-xs text-foreground/60">From</span>
+          <span className="text-xs text-muted">From</span>
           <input
             type="date"
             value={startDate}
@@ -33,21 +33,21 @@ export function TripDateRangeRow({
             onChange={(e) =>
               onChange(e.target.value, endDate < e.target.value ? e.target.value : endDate)
             }
-            className="rounded-lg border border-outline bg-surface px-2.5 py-1.5 outline-none focus:border-accent"
+            className="rounded-control border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-primary"
           />
         </label>
         <label className="flex flex-1 flex-col gap-1">
-          <span className="text-xs text-foreground/60">To</span>
+          <span className="text-xs text-muted">To</span>
           <input
             type="date"
             value={endDate}
             min={startDate}
             onChange={(e) => onChange(startDate, e.target.value)}
-            className="rounded-lg border border-outline bg-surface px-2.5 py-1.5 outline-none focus:border-accent"
+            className="rounded-control border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-primary"
           />
         </label>
       </div>
-      <p className={`text-xs ${tooLong ? "text-red-600" : "text-foreground/50"}`}>
+      <p className={`text-xs ${tooLong ? "text-danger" : "text-muted"}`}>
         {dayCount} day{dayCount === 1 ? "" : "s"}
         {tooLong ? ` — trips are limited to ${maxDays} days` : ""}
       </p>

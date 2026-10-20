@@ -3,8 +3,7 @@ import { CATEGORY_LABELS } from "./labels";
 import { outfitSignature } from "./outfitSignature";
 import { ClothingItem, GeneratedOutfit, OutfitGenerationError } from "./types";
 
-/// Port of `color_match_outfit_generation_service.dart` — free, fully
-/// offline outfit generation: ranks top+bottom(+outerwear)(+shoes)
+/// Quick Match -- free, fully offline outfit generation: ranks top+bottom(+outerwear)(+shoes)
 /// combinations from the user's own wardrobe purely by color harmony, no
 /// network call, no occasion awareness (that's what the paid AI Stylist
 /// adds). Runs entirely client-side.
@@ -20,7 +19,7 @@ interface ScoredCombo {
   rationale: string;
 }
 
-export interface QuickMatchOptions {
+interface QuickMatchOptions {
   items: ClothingItem[];
   count?: number;
   includeOuterwear?: boolean;

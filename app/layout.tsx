@@ -1,18 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { Archivo, Schibsted_Grotesk } from "next/font/google";
+
+import { getActiveProfile, resolveLook } from "@/lib/profile";
 
 import "./globals.css";
+import { LookProvider } from "./look-context";
 import { ThemeProvider } from "./theme-provider";
 
-// Wardro's font pairing, ported from app_typography.dart: Fraunces (a
-// warm, slightly quirky serif) for headings/brand moments, Manrope (a
-// clean geometric sans) for body copy and UI chrome.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// One family per look (see app/globals.css): Archivo with its width axis,
+// so Tailor's navy can set headings expanded like a woven garment label,
+// and Schibsted Grotesk for Colour story's dense, gallery-style type.
+// Browsers only download the face the current look actually uses.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
-const manrope = Manrope({
-  variable: "--font-manrope",
+const schibsted = Schibsted_Grotesk({
+  variable: "--font-schibsted",
   subsets: ["latin"],
 });
 
@@ -22,26 +27,33 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#b2532d",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e6eaef" },
+    { media: "(prefers-color-scheme: dark)", color: "#111925" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Resolved server-side so the first paint is already in the right look.
+  const look = await resolveLook(await getActiveProfile());
+
   return (
     <html
       lang="en"
+      data-look={look}
       suppressHydrationWarning
-      className={`${fraunces.variable} ${manrope.variable} h-full`}
+      className={`${archivo.variable} ${schibsted.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
+      <body className="flex min-h-full flex-col bg-background text-ink antialiased">
         <ThemeProvider>
-          {children}
+          <LookProvider look={look}>{children}</LookProvider>
         </ThemeProvider>
       </body>
     </html>

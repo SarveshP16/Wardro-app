@@ -1,12 +1,15 @@
+"use client";
+
 import { Trash2 } from "lucide-react";
 
 import { SEASON_LABELS, STYLE_LABELS } from "@/lib/labels";
 import { SEASON_ICONS } from "@/lib/seasonIcons";
 import type { ClothingItem, SavedOutfit } from "@/lib/types";
 
-import { OutfitThumbnailRow } from "./OutfitThumbnailRow";
+import { OutfitVisual } from "./OutfitVisual";
 
-/// Port of `saved_outfit_card.dart`.
+/// A saved outfit: its occasion (and season, if it was saved with one),
+/// the outfit picture, title, rationale, and a delete action.
 export function SavedOutfitCard({
   outfit,
   itemsById,
@@ -18,32 +21,32 @@ export function SavedOutfitCard({
 }) {
   const SeasonIcon = outfit.season ? SEASON_ICONS[outfit.season] : null;
   return (
-    <div className="rounded-2xl border border-outline bg-surface p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-accent">
-          <span>{STYLE_LABELS[outfit.style]}</span>
+    <article className="flex flex-col">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 text-[13px] text-muted">
+          <span className="font-semibold text-ink">
+            {STYLE_LABELS[outfit.style]}
+          </span>
           {outfit.season && SeasonIcon ? (
-            <span className="flex items-center gap-1 text-foreground/50">
-              <SeasonIcon size={12} />
+            <span className="flex items-center gap-1">
+              <SeasonIcon size={13} />
               {SEASON_LABELS[outfit.season]}
             </span>
           ) : null}
         </div>
         <button
           onClick={onDelete}
-          aria-label="Delete saved outfit"
-          className="text-foreground/40 transition-colors hover:text-red-600"
+          aria-label={`Delete ${outfit.title}`}
+          className="-mr-2 rounded-control p-2 text-muted transition-colors hover:bg-surface-2 hover:text-danger"
         >
           <Trash2 size={16} />
         </button>
       </div>
-      <div className="mt-2">
-        <OutfitThumbnailRow itemIds={outfit.itemIds} itemsById={itemsById} />
-      </div>
-      <h3 className="mt-3 font-serif text-base font-semibold">
-        {outfit.title}
-      </h3>
-      <p className="mt-1 text-sm text-foreground/65">{outfit.rationale}</p>
-    </div>
+      <OutfitVisual itemIds={outfit.itemIds} itemsById={itemsById} />
+      <h3 className="display mt-4 text-[17px] leading-snug">{outfit.title}</h3>
+      <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-muted">
+        {outfit.rationale}
+      </p>
+    </article>
   );
 }

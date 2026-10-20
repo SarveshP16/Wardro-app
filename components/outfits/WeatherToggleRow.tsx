@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Switch } from "@/components/ui/Switch";
 import type { WeatherSnapshot } from "@/lib/types";
 
-/// Port of `weather_toggle_row.dart` — AI Stylist only. Toggling this on
+/// AI Stylist only. Toggling this on
 /// triggers a browser geolocation + Open-Meteo fetch (see
 /// lib/weather.ts); the summary here reflects whatever that returned.
 /// Also offers a manual location search for when GPS is unavailable, off,
@@ -48,12 +48,12 @@ export function WeatherToggleRow({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 px-5 py-1 text-sm">
+    <div className="flex flex-col gap-1.5 py-1 text-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <CloudSun size={16} className="shrink-0 text-foreground/60" />
+          <CloudSun size={16} className="shrink-0 text-muted" />
           <span
-            className={`truncate ${error && !weather ? "text-red-600" : "text-foreground/70"}`}
+            className={`truncate ${error && !weather ? "text-danger" : "text-ink"}`}
           >
             {summary}
           </span>
@@ -73,18 +73,18 @@ export function WeatherToggleRow({
                 if (e.key === "Escape") setSearchOpen(false);
               }}
               placeholder="City or place name"
-              className="min-w-0 flex-1 rounded-lg border border-outline bg-surface px-2.5 py-1 text-sm outline-none focus:border-accent"
+              className="min-w-0 flex-1 rounded-control border border-line bg-surface px-2.5 py-1 text-sm outline-none focus:border-primary"
             />
             <button
               onClick={submitSearch}
               aria-label="Search location"
-              className="flex items-center justify-center rounded-lg border border-outline px-2 text-foreground/70 hover:bg-outline/30"
+              className="flex items-center justify-center rounded-control border border-line px-2 text-ink hover:bg-surface-2"
             >
               <Search size={14} />
             </button>
             <button
               onClick={() => setSearchOpen(false)}
-              className="text-xs text-foreground/50 hover:text-foreground"
+              className="text-xs text-muted hover:text-ink"
             >
               Cancel
             </button>
@@ -93,13 +93,13 @@ export function WeatherToggleRow({
           <div className="flex gap-4 pl-6 text-xs">
             <button
               onClick={onUseCurrentLocation}
-              className="flex items-center gap-1 text-accent hover:underline"
+              className="flex items-center gap-1 text-primary hover:underline"
             >
               <MapPin size={12} /> Use current location
             </button>
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1 text-accent hover:underline"
+              className="flex items-center gap-1 text-primary hover:underline"
             >
               <Search size={12} /> Enter location
             </button>

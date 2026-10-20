@@ -1,17 +1,23 @@
-# Wardro web app. node:20-bookworm-slim (glibc, not alpine) -- avoids the
+# Wardro web app. node:24-bookworm-slim (glibc, not alpine) -- avoids the
 # common `sharp` native-binding breakage on musl. Ships the full
 # node_modules (rather than Next's "standalone" trace output) so the
 # `prisma` CLI is guaranteed to be present for `prisma migrate deploy` at
 # container start -- simplicity/reliability over image size, since this
 # runs on one self-hosted box, not at scale.
 
-FROM node:20-bookworm-slim AS base
+FROM node:24-bookworm-slim AS base
 WORKDIR /app
 # Prisma's engine-selection needs the `openssl` CLI to detect the
 # installed libssl version; without it, it silently guesses wrong and can
 # fail to load the query engine at runtime.
-RUN apt-get update && apt-get install -y --no-install-recommends openssl \
-    && rm -rf /var/lib/apt/lists/*
+# `apt-get upgrade` and the npm update pull in security fixes released
+# since the base image was published (the bundled npm is used at runtime
+# by the entrypoint).
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g npm@11 \
+    && npm cache clean --force
 # `prisma generate` (run via postinstall below, and again explicitly in
 # the builder stage) loads prisma.config.ts and eagerly resolves
 # DATABASE_URL even though codegen never connects to a database -- a

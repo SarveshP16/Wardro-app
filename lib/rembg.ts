@@ -2,8 +2,7 @@ import { BackgroundRemovalError } from "./types";
 
 /// Calls the `rembg` sidecar (see services/rembg/) over the internal
 /// Docker network. Server-side only — the client never talks to this
-/// service directly. Replaces `background_removal_service.dart`'s
-/// on-device ONNX call.
+/// service directly.
 export async function removeBackground(
   bytes: Buffer,
   filename = "photo.jpg",

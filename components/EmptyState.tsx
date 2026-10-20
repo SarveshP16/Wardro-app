@@ -1,24 +1,24 @@
 import type { ReactNode } from "react";
 
-/// Port of `empty_state.dart` — centered icon + message, optionally with
-/// an action underneath.
+/// Centered message for an empty or not-yet-used screen, ideally with
+/// the action that fills it.
 export function EmptyState({
   icon,
   title,
   message,
   action,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   message?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-16 text-center">
-      <div className="text-foreground/35">{icon}</div>
-      <p className="font-serif text-lg font-semibold">{title}</p>
+      {icon ? <div className="text-muted">{icon}</div> : null}
+      <p className="display text-lg">{title}</p>
       {message ? (
-        <p className="max-w-xs text-sm text-foreground/60">{message}</p>
+        <p className="max-w-xs text-sm text-muted">{message}</p>
       ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { generateAiPackingList } from "@/lib/anthropic";
 import { categoryFromDb } from "@/lib/labels";
+import { requireProfile } from "@/lib/profile";
+import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
 import { MAX_TRIP_DAYS } from "@/lib/packingList";
 import {
   ClothingItem,
@@ -16,6 +18,8 @@ import {
 /// app/api/outfits/generate/ai/route.ts, but plans a whole date range in
 /// one AI Stylist call instead of a single batch of alternatives.
 export async function POST(request: NextRequest) {
+  const auth = await requireProfile();
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
   const {
     style,
@@ -33,8 +37,11 @@ export async function POST(request: NextRequest) {
     excludeCombos?: string[][];
   };
 
-  if (!style) {
+  if (!isStyle(style)) {
     return NextResponse.json({ error: "Missing style." }, { status: 400 });
+  }
+  if (season != null && !isSeason(season)) {
+    return NextResponse.json({ error: "Unknown season." }, { status: 400 });
   }
   if (!Array.isArray(days) || days.length === 0) {
     return NextResponse.json(
@@ -49,7 +56,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rows = await prisma.clothingItem.findMany();
+  const rows = await prisma.clothingItem.findMany({
+    where: { profileId: auth.id },
+  });
   const items: ClothingItem[] = rows.map((row) => ({
     id: row.id,
     category: categoryFromDb(row.category),
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
       includeShoes,
       season: season ?? null,
       days,
-      excludeCombos: excludeCombos ?? [],
+      excludeCombos: cleanExcludeCombos(excludeCombos),
     });
     return NextResponse.json({ days: packingDays });
   } catch (error) {

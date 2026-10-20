@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { SubpageHeader } from "@/components/SubpageHeader";
 import { AddItemPreviewForm } from "@/components/wardrobe/add/AddItemPreviewForm";
 import { AddItemProcessingView } from "@/components/wardrobe/add/AddItemProcessingView";
 import { AddItemSourcePicker } from "@/components/wardrobe/add/AddItemSourcePicker";
@@ -16,15 +17,16 @@ interface ProcessedPhoto {
   dominantColor: number;
 }
 
-/// Orchestrates the add-item flow (port of add_item_screen.dart):
-/// pick source -> process each photo through rembg -> confirm
-/// category/name -> save -> repeat for the rest of the batch.
-/// `remaining[0]` is always the photo currently being processed/shown;
-/// `remaining.slice(1)` is the rest of the batch still queued.
+/// Orchestrates the add-item flow: pick source -> process each photo
+/// through rembg -> confirm category/name -> save -> repeat for the rest
+/// of the batch. `remaining[0]` is always the photo currently being
+/// processed/shown; `remaining.slice(1)` is the rest of the batch still
+/// queued.
 export default function AddItemPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("source");
   const [remaining, setRemaining] = useState<File[]>([]);
+  const [batchSize, setBatchSize] = useState(0);
   const [current, setCurrent] = useState<ProcessedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,6 +52,11 @@ export default function AddItemPage() {
     }
   }
 
+  function startBatch(files: File[]) {
+    setBatchSize(files.length);
+    void processQueue(files);
+  }
+
   async function handleSave(data: {
     category: ClothingCategory;
     name: string | null;
@@ -68,30 +75,31 @@ export default function AddItemPage() {
       await processQueue(remaining.slice(1));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not save this item.",
+        err instanceof Error ? err.message : "Could not save this piece.",
       );
     } finally {
       setSaving(false);
     }
   }
 
+  // "Photo 2 of 5" while working through a multi-photo batch.
+  const position = batchSize - remaining.length + 1;
+  const title =
+    step !== "source" && batchSize > 1
+      ? `Photo ${position} of ${batchSize}`
+      : "Add pieces";
+
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center gap-3 border-b border-outline px-5 py-4">
-        <button
-          onClick={() => router.push("/wardrobe")}
-          className="text-sm text-foreground/60 hover:text-foreground"
-        >
-          Cancel
-        </button>
-        <h1 className="flex-1 text-center font-serif text-lg font-semibold">
-          Add item{savedCount > 0 ? ` (${savedCount} added)` : ""}
-        </h1>
-        <span className="w-10" />
-      </header>
+    <div className="flex flex-1 flex-col">
+      <SubpageHeader title={title} onBack={() => router.push("/wardrobe")} />
+      {savedCount > 0 ? (
+        <p className="px-5 text-xs text-muted">
+          {savedCount} added to your wardrobe
+        </p>
+      ) : null}
 
       {step === "source" ? (
-        <AddItemSourcePicker onFilesSelected={processQueue} />
+        <AddItemSourcePicker onFilesSelected={startBatch} />
       ) : step === "processing" ? (
         <AddItemProcessingView
           error={error}
@@ -100,8 +108,10 @@ export default function AddItemPage() {
         />
       ) : current ? (
         <AddItemPreviewForm
+          key={position}
           cutoutBase64={current.cutout}
           saving={saving}
+          error={error}
           onSave={handleSave}
           onSkip={() => processQueue(remaining.slice(1))}
         />

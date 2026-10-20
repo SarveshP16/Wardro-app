@@ -1,6 +1,6 @@
 import rawPalette from "@/data/sanzo_wada_colors.json";
 
-/// Port of `sanzo_wada_palette.dart`. Looks up whether two colors
+/// Looks up whether two colors
 /// correspond to a pairing Sanzo Wada actually published together, by
 /// snapping each to its nearest of his 159 reference colors (plain RGB
 /// distance — not perceptually exact, but adequate for a "does this look

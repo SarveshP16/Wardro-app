@@ -3,8 +3,7 @@ import type { ComponentType } from "react";
 
 import type { ClothingCategory } from "./types";
 
-/// Icon per category, standing in for the Material icons used in
-/// clothing_category.dart (checkroom / dry_cleaning / ac_unit / hiking).
+/// Icon per clothing category.
 export const CATEGORY_ICONS: Record<
   ClothingCategory,
   ComponentType<{ size?: number; strokeWidth?: number; className?: string }>

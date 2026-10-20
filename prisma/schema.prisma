@@ -1,4 +1,4 @@
-// Wardro data model — see plan at C:\Users\CrYsTAxiT\.claude\plans\rosy-herding-glade.md
+// Wardro data model.
 // No `imagePath` column: a ClothingItem's `id` *is* the image filename
 // (`data/images/<id>.png`, written by lib/imageStore.ts), so there's no
 // path to drift out of sync with the file on disk.
@@ -35,23 +35,45 @@ enum Season {
   WINTER
 }
 
+// A person using Wardro -- picked by name on the profile screen (no
+// password: access control is the Tailscale network, see README). Each
+// profile has its own wardrobe, saved outfits, and theme. The active
+// profile is remembered per device in a cookie (see lib/profile.ts).
+model Profile {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  // Avatar color key -- one of PROFILE_COLORS in lib/types.ts.
+  color     String
+  // 'system' | 'light' | 'dark'.
+  themeMode String   @default("system")
+  // Visual style: 'navy' (Tailor's navy) | 'colour' (Colour story) --
+  // see LOOKS in lib/types.ts.
+  look      String   @default("navy")
+  createdAt DateTime @default(now())
+
+  items   ClothingItem[]
+  outfits SavedOutfit[]
+}
+
 model ClothingItem {
   id            String   @id @default(uuid())
+  profileId     String
   category      Category
   name          String?
   // Packed 0xRRGGBB, or null for items whose dominant color hasn't been
-  // computed (mirrors ClothingItem.dominantColor being nullable in the
-  // original Flutter model).
+  // computed.
   dominantColor Int?
   createdAt     DateTime @default(now())
 
+  profile     Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
   outfitLinks SavedOutfitItem[]
 
-  @@index([category])
+  @@index([profileId, category])
 }
 
 model SavedOutfit {
   id        String   @id @default(uuid())
+  profileId String
   style     Style
   // null means the outfit was generated/saved without a season filter
   // ("Any season").
@@ -60,11 +82,13 @@ model SavedOutfit {
   rationale String
   createdAt DateTime @default(now())
 
-  items SavedOutfitItem[]
+  profile Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  items   SavedOutfitItem[]
+
+  @@index([profileId])
 }
 
-// Join table preserving each item's position within the outfit (the
-// Flutter model stored `itemIds` as an ordered list).
+// Join table preserving each item's position within the outfit.
 model SavedOutfitItem {
   outfitId String
   itemId   String
@@ -76,9 +100,3 @@ model SavedOutfitItem {
   @@id([outfitId, itemId])
 }
 
-// Simple key-value store, replacing the Hive settings box. Currently just
-// `themeMode` ('system' | 'light' | 'dark').
-model Setting {
-  key   String @id
-  value String
-}

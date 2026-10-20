@@ -1,36 +1,46 @@
+"use client";
+
+import { Bookmark, BookmarkCheck } from "lucide-react";
+import type { ReactNode } from "react";
+
 import { Button } from "@/components/ui/Button";
 import type { ClothingItem, GeneratedOutfit } from "@/lib/types";
 
-import { OutfitThumbnailRow } from "./OutfitThumbnailRow";
+import { OutfitVisual } from "./OutfitVisual";
 
-/// Port of `outfit_result_card.dart` — one freshly generated combination,
-/// with a Save action.
+/// One freshly generated combination: the outfit picture, its title and
+/// rationale, and a Save action. `eyebrow` is an optional line above the
+/// picture (Packing List uses it for the day and its forecast).
 export function OutfitResultCard({
   outfit,
   itemsById,
   saved,
   onSave,
+  eyebrow,
 }: {
   outfit: GeneratedOutfit;
   itemsById: Map<string, ClothingItem>;
   saved: boolean;
   onSave: () => void;
+  eyebrow?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-outline bg-surface p-4">
-      <OutfitThumbnailRow itemIds={outfit.itemIds} itemsById={itemsById} />
-      <h3 className="mt-3 font-serif text-base font-semibold">
-        {outfit.title}
-      </h3>
-      <p className="mt-1 text-sm text-foreground/65">{outfit.rationale}</p>
+    <article className="flex flex-col">
+      {eyebrow ? <div className="mb-2">{eyebrow}</div> : null}
+      <OutfitVisual itemIds={outfit.itemIds} itemsById={itemsById} />
+      <h3 className="display mt-4 text-[17px] leading-snug">{outfit.title}</h3>
+      <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-muted">
+        {outfit.rationale}
+      </p>
       <Button
-        variant={saved ? "outlined" : "filled"}
+        variant={saved ? "secondary" : "primary"}
         onClick={onSave}
         disabled={saved}
-        className="mt-3 w-full"
+        icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+        className="mt-4 self-start"
       >
         {saved ? "Saved" : "Save outfit"}
       </Button>
-    </div>
+    </article>
   );
 }

@@ -15,13 +15,9 @@ import {
   WeatherSnapshot,
 } from "./types";
 
-/// Server-side port of `HttpOutfitGenerationService`
-/// (outfit_generation_service.dart) — calls the Anthropic Messages API
-/// directly with ANTHROPIC_API_KEY. Unlike the original Flutter app, the
-/// key now lives only in this server-side module's environment and is
-/// never sent to the browser (see project memory / plan for why this
-/// changed once the app became a self-hosted server instead of a
-/// single-user mobile binary).
+/// The AI Stylist: calls the Anthropic Messages API directly with
+/// ANTHROPIC_API_KEY. The key lives only in this server-side module's
+/// environment and is never sent to the browser.
 ///
 /// A plain `fetch` is used instead of the `@anthropic-ai/sdk` package so
 /// the request body matches the original, already-proven-correct Dart
@@ -87,7 +83,7 @@ interface ContentBlock {
   source?: { type: "base64"; media_type: string; data: string };
 }
 
-export interface GenerateAiOutfitsOptions {
+interface GenerateAiOutfitsOptions {
   items: ClothingItem[];
   style: OutfitStyle;
   includeOuterwear?: boolean;
@@ -344,7 +340,7 @@ function parseOutfits(
   return cleaned;
 }
 
-export interface GenerateAiPackingListOptions {
+interface GenerateAiPackingListOptions {
   items: ClothingItem[];
   style: OutfitStyle;
   includeOuterwear?: boolean;

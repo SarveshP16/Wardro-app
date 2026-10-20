@@ -5,10 +5,9 @@ import { useRef, type ChangeEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 
-/// Port of `add_item_source_picker.dart` — the first step of the add-item
-/// flow: choose whether the new photo(s) come from the camera or the
+/// First step of the add-item flow: take a photo or pick several from the
 /// gallery. `capture="environment"` opens the rear camera directly on
-/// mobile browsers; the gallery input allows multi-select.
+/// phones; the gallery input allows multi-select.
 export function AddItemSourcePicker({
   onFilesSelected,
 }: {
@@ -24,21 +23,15 @@ export function AddItemSourcePicker({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-10 text-center">
-      <div className="text-accent">
-        <ImagePlus size={56} strokeWidth={1.25} />
-      </div>
+    <div className="flex flex-1 flex-col justify-center gap-8 px-5 py-10 md:max-w-md">
       <div>
-        <h2 className="font-serif text-xl font-semibold">
-          Add a wardrobe item
-        </h2>
-        <p className="mx-auto mt-2 max-w-xs text-sm text-foreground/60">
-          Lay each item flat or on a hanger. Take a photo, or pick several
-          from your gallery at once, and Wardro will lift them out of the
-          background — clean product shots, automatically.
+        <h2 className="display text-2xl leading-tight">Photograph your clothes</h2>
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
+          Lay each piece flat or hang it up, one per photo. Wardro removes
+          the background and picks out its colour.
         </p>
       </div>
-      <div className="flex w-full max-w-xs flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <Button
           icon={<Camera size={18} />}
           onClick={() => cameraInputRef.current?.click()}
@@ -46,16 +39,16 @@ export function AddItemSourcePicker({
           Take a photo
         </Button>
         <Button
-          variant="outlined"
+          variant="secondary"
           icon={<ImagePlus size={18} />}
           onClick={() => galleryInputRef.current?.click()}
         >
           Choose from gallery
         </Button>
+        <p className="text-xs text-muted">
+          Pick several photos at once to add them one after another.
+        </p>
       </div>
-      <p className="text-xs text-foreground/45">
-        Select multiple photos to add them one after another.
-      </p>
 
       <input
         ref={cameraInputRef}

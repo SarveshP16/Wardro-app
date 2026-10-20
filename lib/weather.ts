@@ -1,11 +1,11 @@
 import { DailyForecast, WeatherError, WeatherSnapshot } from "./types";
 
-/// Port of `weather_service.dart` (OpenMeteoService) — backed by
+/// Live weather and trip forecasts, backed by
 /// Open-Meteo (open-meteo.com), which needs no API key/signup at all for
 /// personal-scale use. Falls back to BigDataCloud's free client-side
 /// reverse-geocode for a human-readable place name; that call is
 /// best-effort and never fails the weather fetch itself. Runs entirely
-/// client-side (uses the browser Geolocation API), same as the original.
+/// client-side (uses the browser Geolocation API).
 
 const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
 const REVERSE_GEOCODE_ENDPOINT =
@@ -229,7 +229,7 @@ export async function fetchWeatherForLocation(
 /// back to season-only hints for the extra days (see PackingDayInput).
 const MAX_FORECAST_DAYS_AHEAD = 15;
 
-export interface TripForecast {
+interface TripForecast {
   locationLabel: string;
   /// Only the requested dates that fall within the forecast horizon --
   /// may be shorter than the requested range, or empty.

@@ -1,7 +1,7 @@
 import { Switch } from "@/components/ui/Switch";
 
-/// Port of `outfit_category_toggles.dart` — whether outerwear/shoes are
-/// even offered to the generator (both engines honor these).
+/// Whether outerwear/shoes are offered to the generator at all (every
+/// engine honors these).
 export function OutfitCategoryToggles({
   includeOuterwear,
   includeShoes,
@@ -14,7 +14,7 @@ export function OutfitCategoryToggles({
   onChangeShoes: (value: boolean) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 px-5 py-1">
+    <div className="flex flex-col gap-2 py-1">
       <div className="flex items-center justify-between text-sm">
         <span>Include outerwear</span>
         <Switch

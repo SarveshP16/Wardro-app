@@ -1,8 +1,8 @@
 import { hslOf } from "./color";
 import { isPaired, nearestName } from "./sanzoWadaPalette";
 
-/// Port of `color_harmony.dart` — color-theory scoring for the free
-/// on-device "Quick Match" outfit generator: a synthetic hue-distance
+/// Color-theory scoring for the free, offline "Quick Match" outfit
+/// generator: a synthetic hue-distance
 /// model (no pattern awareness, not a substitute for the AI Stylist's
 /// actual visual judgment) blended with sanzoWadaPalette's curated,
 /// real-world color pairings.
@@ -10,7 +10,7 @@ import { isPaired, nearestName } from "./sanzoWadaPalette";
 /// A color reads as "neutral" (goes with almost anything) when it's close
 /// to grayscale (low saturation) or near black/white (extreme lightness)
 /// — covers black, white, gray, navy-adjacent darks, beige.
-export function isNeutral(color: number): boolean {
+function isNeutral(color: number): boolean {
   const { s, l } = hslOf(color);
   return s < 0.18 || l < 0.14 || l > 0.92;
 }
@@ -26,7 +26,7 @@ function hueDistance(hueA: number, hueB: number): number {
 /// hues) and complementary (opposite hues) score high, with the lowest
 /// score at a ~90 degree hue gap -- a smooth stand-in for "these two
 /// specific hues clash."
-export function score(a: number, b: number): number {
+function score(a: number, b: number): number {
   const aNeutral = isNeutral(a);
   const bNeutral = isNeutral(b);
   if (aNeutral && bNeutral) return 0.95;

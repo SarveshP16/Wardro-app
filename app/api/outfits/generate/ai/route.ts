@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { generateAiOutfits } from "@/lib/anthropic";
 import { categoryFromDb } from "@/lib/labels";
+import { requireProfile } from "@/lib/profile";
+import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
 import {
   ClothingItem,
   OutfitGenerationError,
@@ -14,6 +16,8 @@ import {
 /// The AI Stylist. Server-side only -- this is the one place
 /// ANTHROPIC_API_KEY is ever read (see lib/anthropic.ts).
 export async function POST(request: NextRequest) {
+  const auth = await requireProfile();
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
   const {
     style,
@@ -31,11 +35,16 @@ export async function POST(request: NextRequest) {
     excludeCombos?: string[][];
   };
 
-  if (!style) {
+  if (!isStyle(style)) {
     return NextResponse.json({ error: "Missing style." }, { status: 400 });
   }
+  if (season != null && !isSeason(season)) {
+    return NextResponse.json({ error: "Unknown season." }, { status: 400 });
+  }
 
-  const rows = await prisma.clothingItem.findMany();
+  const rows = await prisma.clothingItem.findMany({
+    where: { profileId: auth.id },
+  });
   const items: ClothingItem[] = rows.map((row) => ({
     id: row.id,
     category: categoryFromDb(row.category),
@@ -52,7 +61,7 @@ export async function POST(request: NextRequest) {
       includeShoes,
       weather: weather ?? null,
       season: season ?? null,
-      excludeCombos: excludeCombos ?? [],
+      excludeCombos: cleanExcludeCombos(excludeCombos),
     });
     return NextResponse.json({ outfits });
   } catch (error) {

@@ -1,16 +1,16 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ItemImage } from "@/components/ItemImage";
+import { SubpageHeader } from "@/components/SubpageHeader";
 import { Button } from "@/components/ui/Button";
 import { CategorySelector } from "@/components/wardrobe/CategorySelector";
 import { api } from "@/lib/api";
 import type { ClothingCategory, ClothingItem } from "@/lib/types";
 
-/// Port of `edit_item_screen.dart`.
+/// Change a piece's category or name.
 export default function EditItemPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -38,71 +38,56 @@ export default function EditItemPage() {
       await api.updateItem(id, { category, name: name.trim() || null });
       router.push(`/wardrobe/${id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not save changes.",
-      );
+      setError(err instanceof Error ? err.message : "Could not save changes.");
     } finally {
       setSaving(false);
     }
   }
 
   if (item === undefined) {
-    return (
-      <p className="px-5 py-10 text-center text-sm text-foreground/50">
-        Loading…
-      </p>
-    );
+    return <p className="px-5 py-10 text-center text-sm text-muted">Loading…</p>;
   }
   if (item === null) {
     return (
-      <p className="px-5 py-10 text-center text-sm text-foreground/50">
-        Item not found.
+      <p className="px-5 py-10 text-center text-sm text-muted">
+        This piece isn&apos;t in your wardrobe.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-3 px-5 py-4">
-        <button
-          onClick={() => router.back()}
-          className="text-foreground/70 hover:text-foreground"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="flex-1 text-center font-serif text-lg font-semibold">
-          Edit item
-        </h1>
-        <span className="w-5" />
-      </header>
+    <div className="flex flex-1 flex-col pb-10">
+      <SubpageHeader title="Edit piece" />
 
-      <ItemImage
-        id={item.id}
-        alt={item.name ?? item.category}
-        className="mx-5 aspect-square rounded-2xl"
-      />
+      <div className="flex flex-col gap-6 px-5 pt-2 md:max-w-lg">
+        <ItemImage
+          id={item.id}
+          alt={item.name ?? item.category}
+          padding="p-4"
+          className="aspect-square w-40 rounded-card"
+        />
 
-      <div className="flex flex-1 flex-col gap-5 px-5 py-5">
-        <div>
-          <p className="mb-2 text-sm font-semibold">Category</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] font-semibold">Category</p>
           <CategorySelector value={category} onChange={setCategory} />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-semibold" htmlFor="edit-name">
-            Name (optional)
+        <div className="flex flex-col gap-2">
+          <label className="text-[13px] font-semibold" htmlFor="edit-name">
+            Name <span className="font-normal text-muted">(optional)</span>
           </label>
           <input
             id="edit-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-outline bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent"
+            placeholder="e.g. Blue denim jacket"
+            className="w-full rounded-control border border-line bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-primary"
           />
         </div>
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-        <Button onClick={handleSave} disabled={saving} className="mt-auto">
+        <Button onClick={handleSave} disabled={saving} className="md:self-start">
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>

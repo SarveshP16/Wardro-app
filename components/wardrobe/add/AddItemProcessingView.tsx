@@ -2,8 +2,8 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 
-/// Port of `add_item_processing_view.dart` — shown while a photo is being
-/// sent through the rembg sidecar, or the error state if that failed.
+/// Shown while a photo is going through background removal, or the error
+/// state if that failed.
 export function AddItemProcessingView({
   error,
   onRetry,
@@ -16,9 +16,11 @@ export function AddItemProcessingView({
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-sm text-red-600">{error}</p>
+        <p role="alert" className="max-w-xs text-sm text-danger">
+          {error}
+        </p>
         <div className="flex gap-3">
-          <Button variant="outlined" onClick={onSkip}>
+          <Button variant="secondary" onClick={onSkip}>
             Skip this photo
           </Button>
           <Button onClick={onRetry}>Try again</Button>
@@ -29,8 +31,8 @@ export function AddItemProcessingView({
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <Loader2 size={40} className="animate-spin text-accent" />
-      <p className="text-sm text-foreground/60">Removing the background…</p>
+      <Loader2 size={32} className="animate-spin text-muted" />
+      <p className="text-sm text-muted">Removing the background…</p>
     </div>
   );
 }

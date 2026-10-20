@@ -51,3 +51,6 @@ next-env.d.ts
 *.jks
 *.keystore
 android/keystore.properties
+
+# local database backups (pg_dump) -- personal data, never commit
+/*.sql

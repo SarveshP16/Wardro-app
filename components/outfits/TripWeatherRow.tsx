@@ -31,10 +31,10 @@ export function TripWeatherRow({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 px-5 py-1 text-sm">
+    <div className="flex flex-col gap-1.5 py-1 text-sm">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-foreground/70">
-          <CloudSun size={16} className="shrink-0 text-foreground/60" />
+        <div className="flex min-w-0 items-center gap-2 text-ink">
+          <CloudSun size={16} className="shrink-0 text-muted" />
           <span className="truncate">
             {enabled ? (destination ?? "Current location") : "Factor in the forecast"}
           </span>
@@ -54,18 +54,18 @@ export function TripWeatherRow({
                 if (e.key === "Escape") setEditing(false);
               }}
               placeholder="City or place name"
-              className="min-w-0 flex-1 rounded-lg border border-outline bg-surface px-2.5 py-1 text-sm outline-none focus:border-accent"
+              className="min-w-0 flex-1 rounded-control border border-line bg-surface px-2.5 py-1 text-sm outline-none focus:border-primary"
             />
             <button
               onClick={submit}
               aria-label="Set destination"
-              className="flex items-center justify-center rounded-lg border border-outline px-2 text-foreground/70 hover:bg-outline/30"
+              className="flex items-center justify-center rounded-control border border-line px-2 text-ink hover:bg-surface-2"
             >
               <Search size={14} />
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="text-xs text-foreground/50 hover:text-foreground"
+              className="text-xs text-muted hover:text-ink"
             >
               Cancel
             </button>
@@ -74,13 +74,13 @@ export function TripWeatherRow({
           <div className="flex gap-4 pl-6 text-xs">
             <button
               onClick={() => onDestinationChange(null)}
-              className="flex items-center gap-1 text-accent hover:underline"
+              className="flex items-center gap-1 text-primary hover:underline"
             >
               <MapPin size={12} /> Use current location
             </button>
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1 text-accent hover:underline"
+              className="flex items-center gap-1 text-primary hover:underline"
             >
               <Search size={12} /> Enter destination
             </button>

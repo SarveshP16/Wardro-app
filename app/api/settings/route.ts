@@ -1,31 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { requireProfile, setLookCookie } from "@/lib/profile";
+import { LOOKS, THEME_MODES, type Look, type ThemeMode } from "@/lib/types";
 
-const THEME_KEY = "themeMode";
-const VALID_MODES = ["system", "light", "dark"];
-
-/// Replaces the Hive settings box. Server-side so the setting is
-/// consistent across every device on the Tailscale network, rather than
-/// per-install like the original.
+/// The active profile's appearance settings -- `themeMode` (light/dark)
+/// and `look` (visual style). Stored server-side on the Profile so a
+/// person's choice follows them to every device on the Tailscale network.
 export async function GET() {
-  const row = await prisma.setting.findUnique({ where: { key: THEME_KEY } });
-  return NextResponse.json({ themeMode: row?.value ?? "system" });
+  const auth = await requireProfile();
+  if (auth instanceof NextResponse) return auth;
+  return NextResponse.json({ themeMode: auth.themeMode, look: auth.look });
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireProfile();
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
-  const value = body.themeMode as string;
-  if (!VALID_MODES.includes(value)) {
-    return NextResponse.json(
-      { error: "Invalid theme mode." },
-      { status: 400 },
-    );
+  const data: { themeMode?: ThemeMode; look?: Look } = {};
+
+  if (typeof body.themeMode !== "undefined") {
+    if (!THEME_MODES.includes(body.themeMode)) {
+      return NextResponse.json(
+        { error: "Invalid theme mode." },
+        { status: 400 },
+      );
+    }
+    data.themeMode = body.themeMode;
   }
-  await prisma.setting.upsert({
-    where: { key: THEME_KEY },
-    create: { key: THEME_KEY, value },
-    update: { value },
+  if (typeof body.look !== "undefined") {
+    if (!LOOKS.includes(body.look)) {
+      return NextResponse.json({ error: "Invalid look." }, { status: 400 });
+    }
+    data.look = body.look;
+  }
+
+  const row = await prisma.profile.update({ where: { id: auth.id }, data });
+  const response = NextResponse.json({
+    themeMode: row.themeMode,
+    look: row.look,
   });
-  return NextResponse.json({ themeMode: value });
+  if (data.look) setLookCookie(response, data.look);
+  return response;
 }

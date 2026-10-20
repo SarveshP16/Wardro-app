@@ -1,7 +1,45 @@
-/// Shared domain types — mirrors the Dart models in the original Flutter
-/// app (ClothingItem, SavedOutfit, GeneratedOutfit, OutfitStyle,
-/// WeatherSnapshot). Kept framework-agnostic so both server (API routes)
-/// and client components can import from here.
+/// Shared domain types. Kept framework-agnostic so both server (API
+/// routes) and client components can import from here.
+
+/// Avatar colors a profile can pick -- stored on Profile.color by key so
+/// the palette can be retuned without a migration.
+export type ProfileColor = "navy" | "clay" | "teal" | "mustard" | "plum" | "sage";
+
+export const PROFILE_COLORS: Record<ProfileColor, string> = {
+  navy: "#22395c",
+  clay: "#c4643f",
+  teal: "#2f7d74",
+  mustard: "#b98c22",
+  plum: "#7a4a6e",
+  sage: "#62785c",
+};
+
+/// Longest allowed profile name (enforced server-side in lib/profile.ts).
+export const MAX_PROFILE_NAME_LENGTH = 24;
+
+export type ThemeMode = "system" | "light" | "dark";
+
+export const THEME_MODES: ThemeMode[] = ["system", "light", "dark"];
+
+/// Wardro's two visual styles, picked per profile in Settings (see the
+/// `[data-look]` token blocks in app/globals.css):
+/// - navy: "Tailor's navy" -- navy palette, expanded label-style type,
+///   outfits shown as a stylist's flat-lay.
+/// - colour: "Colour story" -- neutral gallery chrome where the clothes'
+///   own colours carry the design: spectrum strip, colour bands.
+export type Look = "navy" | "colour";
+
+export const LOOKS: Look[] = ["navy", "colour"];
+
+/// A person using Wardro, picked by name on the profile screen. Each has
+/// their own wardrobe, saved outfits, and theme.
+export interface Profile {
+  id: string;
+  name: string;
+  color: ProfileColor;
+  themeMode: ThemeMode;
+  look: Look;
+}
 
 export type ClothingCategory = "top" | "bottom" | "outerwear" | "shoes";
 

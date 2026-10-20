@@ -1,10 +1,9 @@
 """Wardro's background-removal sidecar.
 
 A tiny stateless FastAPI wrapper around `rembg` (an ONNX-based salient
-object segmentation model) — the server-side replacement for the
-Flutter app's on-device `image_background_remover` plugin. Called
-internally by the Next.js `web` service over the Docker Compose network;
-never exposed to the internet directly.
+object segmentation model). Called internally by the Next.js `web`
+service over the Docker Compose network; never exposed to the internet
+directly.
 
 Takes a raw photo, returns a background-removed cutout PNG with alpha.
 """

@@ -2,11 +2,15 @@ import type {
   ClothingCategory,
   ClothingItem,
   GeneratedOutfit,
+  Look,
   OutfitStyle,
   PackingDayInput,
   PackingDayOutfit,
+  Profile,
+  ProfileColor,
   SavedOutfit,
   Season,
+  ThemeMode,
   WeatherSnapshot,
 } from "./types";
 
@@ -25,7 +29,41 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export type ProfileSummary = Profile & {
+  itemCount: number;
+  /// Dominant colors of the profile's wardrobe items.
+  colors: number[];
+};
+
 export const api = {
+  listProfiles: () =>
+    request<{ profiles: ProfileSummary[]; activeId: string | null }>(
+      "/api/profiles",
+    ),
+
+  /// Creates a profile and switches this device to it.
+  createProfile: (data: { name: string; color: ProfileColor }) =>
+    request<{ profile: Profile }>("/api/profiles", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).then((r) => r.profile),
+
+  updateProfile: (id: string, data: { name?: string; color?: ProfileColor }) =>
+    request<{ profile: Profile }>(`/api/profiles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }).then((r) => r.profile),
+
+  /// Deletes a profile with its whole wardrobe and saved outfits.
+  deleteProfile: (id: string) =>
+    request<{ ok: boolean }>(`/api/profiles/${id}`, { method: "DELETE" }),
+
+  selectProfile: (id: string) =>
+    request<{ profile: Profile }>("/api/profiles/active", {
+      method: "PUT",
+      body: JSON.stringify({ id }),
+    }).then((r) => r.profile),
+
   listItems: () =>
     request<{ items: ClothingItem[] }>("/api/wardrobe/items").then(
       (r) => r.items,
@@ -121,11 +159,10 @@ export const api = {
       method: "DELETE",
     }),
 
-  getSettings: () => request<{ themeMode: string }>("/api/settings"),
-
-  setThemeMode: (themeMode: string) =>
-    request<{ themeMode: string }>("/api/settings", {
+  /// Saves the active profile's appearance settings.
+  updateSettings: (data: { themeMode?: ThemeMode; look?: Look }) =>
+    request<{ themeMode: ThemeMode; look: Look }>("/api/settings", {
       method: "PATCH",
-      body: JSON.stringify({ themeMode }),
+      body: JSON.stringify(data),
     }),
 };

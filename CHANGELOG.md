@@ -6,14 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
-## [Unreleased]
+## [2.1.0] - 2026-10-21
+
+### Added
+- **Profiles.** Several people can share one Wardro server: pick yourself
+  on the "Who's getting dressed?" screen (by name, no password). Each
+  profile has its own wardrobe, saved outfits, and appearance settings;
+  each device remembers its profile until you switch (tap your avatar or
+  name). Existing data moves into a profile called "Me" on upgrade —
+  rename it in Settings.
+- **Two looks**, chosen per profile in Settings: *Tailor's navy* (outfits
+  as a flat-lay, wardrobe in category rails) and *Colour story* (wardrobe
+  spectrum, sort by colour, colour bands with named colours). Both have
+  light and dark themes, which are now saved per profile too.
+- Wardrobe: category tabs with counts, and sort by newest or by colour.
+- Wide screens get a sidebar layout.
 
 ### Changed
+- **Redesigned UI.** Replaces the ported Material-style screens: the
+  Outfits tab is split into Create and Saved, and generation options fold
+  away into a summary once results appear.
+- Wardrobe images are served as trimmed, downscaled WebP (about 90 KB
+  instead of ~4 MB each), so the wardrobe loads far faster.
 - **Android app instead of a PWA.** A Capacitor shell (`android/`) that
   loads the same Docker-hosted server over Tailscale (`WARDRO_SERVER_URL`
   in `.env`), with a native "can't reach Wardro" page when the server or
   tailnet is unavailable. Build with `npm run android:release`.
 - Removed the service worker and web app manifest.
+
+- New README with screenshots (of an illustrated demo wardrobe), and a
+  proper favicon in place of the Next.js default.
+- Web image runs on Node 24 LTS (Node 20 is end-of-life).
+- Removed unused code and the redundant `pg` dependency.
+
+### Fixed
+- Switches' thumbs no longer slide out of their track.
+
+### Security
+- The API refuses data-changing requests that a browser marks as coming
+  from another site (`proxy.ts`), so a page opened elsewhere can't act on
+  Wardro in the background.
+- Uploads are capped at 25 MB and must be images; saved cutouts must be
+  valid PNGs; categories, occasions, seasons and names are validated.
+- Image URLs are validated, so a crafted id can't reach outside the
+  images directory.
+- Security headers: no framing, no MIME sniffing, same-origin referrers,
+  camera/location limited to Wardro itself.
+- Dependency updates: Next.js 16.4.2 (fixes a critical RCE and several
+  cache-poisoning/SSRF advisories), sharp, Prisma; rembg sidecar on
+  FastAPI 0.156 / Starlette 1.9 / python-multipart 0.0.32 / rembg 2.0.85.
+- The rembg container runs as a non-root user; both images apply OS
+  security updates at build time.
 
 ## [2.0.0] - 2026-09-22
 

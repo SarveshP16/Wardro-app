@@ -4,47 +4,71 @@ import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
-import { SectionHeader } from "@/components/SectionHeader";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { Segmented } from "@/components/ui/Segmented";
+import { Tabs } from "@/components/ui/Tabs";
 import { CountStepper } from "@/components/outfits/CountStepper";
 import { OutfitCategoryToggles } from "@/components/outfits/OutfitCategoryToggles";
 import { OutfitGeneratingView } from "@/components/outfits/OutfitGeneratingView";
-import { OutfitModeToggle, type OutfitMode } from "@/components/outfits/OutfitModeToggle";
 import { OutfitResultCard } from "@/components/outfits/OutfitResultCard";
 import { PackingDayCard } from "@/components/outfits/PackingDayCard";
 import { SavedOutfitCard } from "@/components/outfits/SavedOutfitCard";
-import { SeasonSelector } from "@/components/outfits/SeasonSelector";
-import { StyleSelector } from "@/components/outfits/StyleSelector";
 import { TripDateRangeRow } from "@/components/outfits/TripDateRangeRow";
 import { TripWeatherRow } from "@/components/outfits/TripWeatherRow";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
+import { SEASON_LABELS, STYLE_LABELS } from "@/lib/labels";
 import { outfitSignature } from "@/lib/outfitSignature";
 import { MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
+import { SEASON_ICONS } from "@/lib/seasonIcons";
 import {
   fetchCurrentWeather,
   fetchTripForecastForCurrentLocation,
   fetchTripForecastForLocation,
   fetchWeatherForLocation,
 } from "@/lib/weather";
-import type {
-  ClothingItem,
-  DailyForecast,
-  GeneratedOutfit,
-  OutfitStyle,
-  PackingDayInput,
-  PackingDayOutfit,
-  SavedOutfit,
-  Season,
-  WeatherSnapshot,
+import {
+  OUTFIT_STYLES,
+  SEASONS,
+  type ClothingItem,
+  type DailyForecast,
+  type GeneratedOutfit,
+  type OutfitStyle,
+  type PackingDayInput,
+  type PackingDayOutfit,
+  type SavedOutfit,
+  type Season,
+  type WeatherSnapshot,
 } from "@/lib/types";
 import { OutfitGenerationError } from "@/lib/types";
 
-/// Port of `outfits_screen.dart` — the outfit-generation engines (AI
-/// Stylist, Quick Match, Packing List) plus the saved-outfits list
-/// beneath them.
+/// The three outfit engines: the free, offline Quick Match colour
+/// matcher, the AI Stylist, and Packing List (also AI Stylist-backed --
+/// see lib/anthropic.ts's generateAiPackingList -- but planning a whole
+/// trip in one call).
+type OutfitMode = "quickMatch" | "ai" | "packing";
+
+const MODE_OPTIONS: { value: OutfitMode; label: string }[] = [
+  { value: "quickMatch", label: "Quick match" },
+  { value: "ai", label: "AI stylist" },
+  { value: "packing", label: "Packing" },
+];
+
+const GENERATE_LABELS: Record<OutfitMode, string> = {
+  quickMatch: "Generate outfits",
+  ai: "Ask the AI stylist",
+  packing: "Plan the trip",
+};
+
+type View = "create" | "saved";
+
+/// The Outfits tab: Create (pick an engine and options, generate, save
+/// what you like) and Saved.
 export default function OutfitsPage() {
+  const [view, setView] = useState<View>("create");
   const [items, setItems] = useState<ClothingItem[] | null>(null);
   const [savedOutfits, setSavedOutfits] = useState<SavedOutfit[] | null>(null);
 
@@ -54,6 +78,9 @@ export default function OutfitsPage() {
   const [includeOuterwear, setIncludeOuterwear] = useState(true);
   const [includeShoes, setIncludeShoes] = useState(true);
   const [count, setCount] = useState(3);
+  // The options panel folds down to a one-line summary once there are
+  // results, so they get the screen.
+  const [optionsOpen, setOptionsOpen] = useState(true);
 
   const [weatherEnabled, setWeatherEnabled] = useState(false);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
@@ -75,7 +102,7 @@ export default function OutfitsPage() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [savedSignatures, setSavedSignatures] = useState<Set<string>>(new Set());
 
-  // Every outfit-item-set shown this session, across BOTH engines --
+  // Every outfit-item-set shown this session, across ALL engines --
   // excluded on generation so consecutive (and mode-switching) "Generate"
   // taps keep surfacing fresh combinations instead of repeating. See
   // lib/outfitSignature.ts.
@@ -210,6 +237,7 @@ export default function OutfitsPage() {
           return next;
         });
       }
+      setOptionsOpen(false);
     } catch (err) {
       setGenerateError(
         err instanceof Error ? err.message : "Outfit generation failed.",
@@ -240,119 +268,196 @@ export default function OutfitsPage() {
   const noItems = items !== null && items.length === 0;
   const tripDayCount = mode === "packing" ? tripDateRange(tripStart, tripEnd).length : 0;
   const tripInvalid = mode === "packing" && (tripDayCount === 0 || tripDayCount > MAX_TRIP_DAYS);
+  const hasResults =
+    (mode === "packing" ? packingResult?.length : generatedOutfits?.length) ?? 0;
+
+  const summary = [
+    MODE_OPTIONS.find((m) => m.value === mode)!.label,
+    STYLE_LABELS[style],
+    season ? SEASON_LABELS[season] : null,
+    mode === "ai" && weatherEnabled && weather
+      ? `${Math.round(weather.temperatureCelsius)}°C`
+      : null,
+    mode === "packing" ? `${tripDayCount} day${tripDayCount === 1 ? "" : "s"}` : null,
+  ].filter((part): part is string => part !== null);
 
   return (
-    <div className="flex flex-1 flex-col pb-8">
-      <SectionHeader title="Outfits" subtitle="Mix and match from your wardrobe" />
+    <div className="flex flex-1 flex-col pb-10">
+      <PageHeader title="Outfits" />
 
-      <OutfitModeToggle mode={mode} onChange={setMode} />
+      <Tabs<View>
+        label="Outfits"
+        value={view}
+        onChange={setView}
+        items={[
+          { value: "create", label: "Create" },
+          { value: "saved", label: "Saved", count: savedOutfits?.length },
+        ]}
+      />
 
-      <div className="mt-4 flex flex-col gap-2">
-        <StyleSelector value={style} onChange={setStyle} />
-        <SeasonSelector value={season} onChange={setSeason} />
-        <OutfitCategoryToggles
-          includeOuterwear={includeOuterwear}
-          includeShoes={includeShoes}
-          onChangeOuterwear={setIncludeOuterwear}
-          onChangeShoes={setIncludeShoes}
-        />
-        {mode === "ai" ? (
-          <WeatherToggleRow
-            enabled={weatherEnabled}
-            weather={weather}
-            loading={weatherLoading}
-            error={weatherError}
-            onToggle={toggleWeather}
-            onUseCurrentLocation={loadCurrentLocationWeather}
-            onSearchLocation={searchLocationWeather}
-          />
-        ) : mode === "packing" ? (
-          <>
-            <TripDateRangeRow
-              startDate={tripStart}
-              endDate={tripEnd}
-              maxDays={MAX_TRIP_DAYS}
-              onChange={(start, end) => {
-                setTripStart(start);
-                setTripEnd(end);
-              }}
-            />
-            <TripWeatherRow
-              enabled={tripWeatherEnabled}
-              destination={tripDestination}
-              onToggle={() => setTripWeatherEnabled((v) => !v)}
-              onDestinationChange={setTripDestination}
-            />
-          </>
-        ) : (
-          <CountStepper value={count} onChange={setCount} max={MAX_RESULT_COUNT} />
-        )}
-      </div>
+      {view === "create" ? (
+        <div className="flex flex-col">
+          {optionsOpen || !hasResults ? (
+            <section aria-label="Outfit options" className="flex flex-col gap-5 px-5 pt-5">
+              <Segmented
+                label="Outfit engine"
+                value={mode}
+                onChange={setMode}
+                options={MODE_OPTIONS}
+              />
 
-      <div className="px-5 py-4">
-        <Button
-          onClick={handleGenerate}
-          disabled={generating || noItems || tripInvalid}
-          className="w-full"
-        >
-          {generating
-            ? "Generating…"
-            : mode === "ai"
-              ? "Ask the AI Stylist"
-              : mode === "packing"
-                ? "Plan the trip"
-                : "Generate outfits"}
-        </Button>
-        {noItems ? (
-          <p className="mt-2 text-center text-xs text-foreground/50">
-            Add some wardrobe items first.
-          </p>
-        ) : null}
-      </div>
+              <OptionGroup label="Occasion">
+                <ChoiceChips<OutfitStyle>
+                  label="Occasion"
+                  value={style}
+                  onChange={setStyle}
+                  options={OUTFIT_STYLES.map((s) => ({ value: s, label: STYLE_LABELS[s] }))}
+                />
+              </OptionGroup>
 
-      {generateError ? (
-        <p className="px-5 pb-2 text-sm text-red-600">{generateError}</p>
-      ) : null}
+              <OptionGroup label="Season">
+                <ChoiceChips<Season | null>
+                  label="Season"
+                  value={season}
+                  onChange={setSeason}
+                  options={[
+                    { value: null, label: "Any" },
+                    ...SEASONS.map((s) => ({
+                      value: s,
+                      label: SEASON_LABELS[s],
+                      icon: SEASON_ICONS[s],
+                    })),
+                  ]}
+                />
+              </OptionGroup>
 
-      {generating ? (
-        <OutfitGeneratingView />
-      ) : mode === "packing" && packingResult && packingResult.length > 0 ? (
-        <div className="flex flex-col gap-3 px-5 pb-6">
-          {packingResult.map((day) => (
-            <PackingDayCard
-              key={day.date}
-              day={day}
-              itemsById={itemsById}
-              saved={savedSignatures.has(outfitSignature(day.outfit.itemIds))}
-              onSave={() => handleSaveOutfit(day.outfit)}
-            />
-          ))}
+              <div className="flex flex-col gap-2 border-y border-line py-3">
+                <OutfitCategoryToggles
+                  includeOuterwear={includeOuterwear}
+                  includeShoes={includeShoes}
+                  onChangeOuterwear={setIncludeOuterwear}
+                  onChangeShoes={setIncludeShoes}
+                />
+                {mode === "ai" ? (
+                  <WeatherToggleRow
+                    enabled={weatherEnabled}
+                    weather={weather}
+                    loading={weatherLoading}
+                    error={weatherError}
+                    onToggle={toggleWeather}
+                    onUseCurrentLocation={loadCurrentLocationWeather}
+                    onSearchLocation={searchLocationWeather}
+                  />
+                ) : mode === "packing" ? (
+                  <>
+                    <TripDateRangeRow
+                      startDate={tripStart}
+                      endDate={tripEnd}
+                      maxDays={MAX_TRIP_DAYS}
+                      onChange={(start, end) => {
+                        setTripStart(start);
+                        setTripEnd(end);
+                      }}
+                    />
+                    <TripWeatherRow
+                      enabled={tripWeatherEnabled}
+                      destination={tripDestination}
+                      onToggle={() => setTripWeatherEnabled((v) => !v)}
+                      onDestinationChange={setTripDestination}
+                    />
+                  </>
+                ) : (
+                  <CountStepper value={count} onChange={setCount} max={MAX_RESULT_COUNT} />
+                )}
+              </div>
+            </section>
+          ) : (
+            <div className="flex items-center gap-2 px-5 pt-4">
+              <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
+                {summary.map((part) => (
+                  <span
+                    key={part}
+                    className="shrink-0 rounded-chip border border-line bg-surface px-2.5 py-1 text-[12.5px]"
+                  >
+                    {part}
+                  </span>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setOptionsOpen(true)}
+                className="shrink-0 text-[13px] font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                Edit
+              </button>
+            </div>
+          )}
+
+          <div className="px-5 pb-2 pt-5">
+            <Button
+              onClick={handleGenerate}
+              disabled={generating || noItems || tripInvalid || items === null}
+              icon={<Sparkles size={16} />}
+              className="w-full md:w-auto"
+            >
+              {generating
+                ? "Generating…"
+                : hasResults
+                  ? "Show different outfits"
+                  : GENERATE_LABELS[mode]}
+            </Button>
+            {noItems ? (
+              <p className="mt-2 text-xs text-muted">
+                Add some pieces to your wardrobe first.
+              </p>
+            ) : null}
+          </div>
+
+          {generateError ? (
+            <p role="alert" className="px-5 pt-2 text-sm text-danger">
+              {generateError}
+            </p>
+          ) : null}
+
+          {generating ? (
+            <OutfitGeneratingView />
+          ) : mode === "packing" && packingResult && packingResult.length > 0 ? (
+            <ResultGrid>
+              {packingResult.map((day) => (
+                <PackingDayCard
+                  key={day.date}
+                  day={day}
+                  itemsById={itemsById}
+                  saved={savedSignatures.has(outfitSignature(day.outfit.itemIds))}
+                  onSave={() => handleSaveOutfit(day.outfit)}
+                />
+              ))}
+            </ResultGrid>
+          ) : mode !== "packing" && generatedOutfits && generatedOutfits.length > 0 ? (
+            <ResultGrid>
+              {generatedOutfits.map((outfit, index) => (
+                <OutfitResultCard
+                  key={index}
+                  outfit={outfit}
+                  itemsById={itemsById}
+                  saved={savedSignatures.has(outfitSignature(outfit.itemIds))}
+                  onSave={() => handleSaveOutfit(outfit)}
+                />
+              ))}
+            </ResultGrid>
+          ) : null}
         </div>
-      ) : generatedOutfits && generatedOutfits.length > 0 ? (
-        <div className="flex flex-col gap-3 px-5 pb-6">
-          {generatedOutfits.map((outfit, index) => (
-            <OutfitResultCard
-              key={index}
-              outfit={outfit}
-              itemsById={itemsById}
-              saved={savedSignatures.has(outfitSignature(outfit.itemIds))}
-              onSave={() => handleSaveOutfit(outfit)}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      <SectionHeader title="Saved outfits" />
-      {savedOutfits === null ? (
-        <p className="px-5 pb-8 text-sm text-foreground/50">Loading…</p>
+      ) : savedOutfits === null ? (
+        <p className="px-5 py-10 text-center text-sm text-muted">Loading…</p>
       ) : savedOutfits.length === 0 ? (
         <EmptyState
-          icon={<Sparkles size={40} strokeWidth={1.25} />}
+          icon={<Sparkles size={36} strokeWidth={1.25} />}
           title="No saved outfits yet"
-          message="Generate an outfit above and save the ones you like."
+          message="Outfits you save from Create show up here."
+          action={<Button onClick={() => setView("create")}>Create an outfit</Button>}
         />
       ) : (
-        <div className="flex flex-col gap-3 px-5 pb-8">
+        <ResultGrid>
           {savedOutfits.map((outfit) => (
             <SavedOutfitCard
               key={outfit.id}
@@ -361,8 +466,30 @@ export default function OutfitsPage() {
               onDelete={() => handleDeleteSaved(outfit.id)}
             />
           ))}
-        </div>
+        </ResultGrid>
       )}
     </div>
+  );
+}
+
+function OptionGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[13px] font-semibold">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+/// Outfit cards: one column on phones, two side by side on wider screens.
+function ResultGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid gap-x-8 gap-y-10 px-5 pt-6 md:grid-cols-2">{children}</div>
   );
 }
