@@ -27,7 +27,7 @@ export function AppNav() {
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 z-20 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:top-0 md:order-first md:h-dvh md:w-60 md:flex-col md:border-r md:border-t-0 md:px-4 md:pb-6 md:pt-8"
+      className="sticky bottom-0 z-20 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:top-[var(--safe-top)] md:order-first md:h-[calc(100dvh-var(--safe-top))] md:w-60 md:flex-col md:border-r md:border-t-0 md:px-4 md:pb-6 md:pt-8"
     >
       <Link
         href="/wardrobe"

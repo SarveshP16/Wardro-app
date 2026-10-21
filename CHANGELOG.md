@@ -8,6 +8,14 @@ it's built for personal use rather than public releases.
 
 ## [Unreleased]
 
+### Fixed
+- **Android app: content no longer slides under the status bar.** Making
+  Wardro full-screen on iPhone (`viewport-fit=cover`) also made the
+  Android app edge-to-edge, so the header and Add button sat behind the
+  clock and icons. The page now pads itself below the status bar, keeps a
+  solid strip behind it while scrolling, and sets the status-bar icons to
+  light or dark to match Wardro's theme rather than the phone's.
+
 ### Added
 - **The AI Stylist never repeats itself.** It remembers every outfit it
   has shown each profile (across visits and devices) and never suggests

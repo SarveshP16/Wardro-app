@@ -82,7 +82,7 @@ export default function ProfilesPage() {
   const heading = profiles?.length === 0 ? "Who are you?" : "Who's getting dressed?";
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pb-10 pt-14">
+    <main className="mx-auto flex min-h-app w-full max-w-md flex-col px-6 pb-10 pt-14">
       <p className="display text-[13px] text-muted">Wardro</p>
       <h1
         className={`display mt-4 leading-[1.02] ${

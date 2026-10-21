@@ -22,10 +22,13 @@ const config: CapacitorConfig = {
     errorPath: "error.html",
   },
   plugins: {
-    // Keep the WebView clear of the status/navigation bars, so the web
-    // app's layout needs no safe-area CSS.
+    // The web app declares viewport-fit=cover (for iPhone home-screen
+    // use), so on current Android WebViews the page runs edge-to-edge and
+    // pads itself with env(safe-area-inset-*) -- see app/globals.css.
+    // The hint avoids a layout jump while that meta tag is detected.
     SystemBars: {
       insetsHandling: "native",
+      initialViewportFitValueHint: "cover",
     },
   },
 };
