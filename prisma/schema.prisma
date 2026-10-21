@@ -51,8 +51,9 @@ model Profile {
   look      String   @default("navy")
   createdAt DateTime @default(now())
 
-  items   ClothingItem[]
-  outfits SavedOutfit[]
+  items       ClothingItem[]
+  outfits     SavedOutfit[]
+  suggestions SuggestedOutfit[]
 }
 
 model ClothingItem {
@@ -100,3 +101,18 @@ model SavedOutfitItem {
   @@id([outfitId, itemId])
 }
 
+// Every outfit the AI Stylist has shown a profile, so it never suggests
+// the same combination twice (see app/api/outfits/generate/ai/route.ts).
+// `signature` is the sorted item-id list (lib/outfitSignature.ts) rather
+// than a relation: rows for outfits whose items were deleted just never
+// match again.
+model SuggestedOutfit {
+  profileId String
+  signature String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, signature])
+  @@index([profileId, createdAt])
+}

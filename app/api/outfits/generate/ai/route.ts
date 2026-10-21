@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { generateAiOutfits } from "@/lib/anthropic";
 import { categoryFromDb } from "@/lib/labels";
+import { loadSeenOutfits, recordSuggestions } from "@/lib/outfitHistory";
 import { requireProfile } from "@/lib/profile";
 import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
 import {
@@ -14,7 +15,9 @@ import {
 } from "@/lib/types";
 
 /// The AI Stylist. Server-side only -- this is the one place
-/// ANTHROPIC_API_KEY is ever read (see lib/anthropic.ts).
+/// ANTHROPIC_API_KEY is ever read (see lib/anthropic.ts). Never repeats an
+/// outfit this profile has been shown before or has saved (see
+/// lib/outfitHistory.ts).
 export async function POST(request: NextRequest) {
   const auth = await requireProfile();
   if (auth instanceof NextResponse) return auth;
@@ -53,6 +56,12 @@ export async function POST(request: NextRequest) {
     createdAt: row.createdAt.toISOString(),
   }));
 
+  const { promptCombos, alreadySeen } = await loadSeenOutfits(
+    auth.id,
+    cleanExcludeCombos(excludeCombos),
+    new Set(items.map((item) => item.id)),
+  );
+
   try {
     const outfits = await generateAiOutfits({
       items,
@@ -61,8 +70,10 @@ export async function POST(request: NextRequest) {
       includeShoes,
       weather: weather ?? null,
       season: season ?? null,
-      excludeCombos: cleanExcludeCombos(excludeCombos),
+      excludeCombos: promptCombos,
+      alreadySeen,
     });
+    await recordSuggestions(auth.id, outfits);
     return NextResponse.json({ outfits });
   } catch (error) {
     const message =

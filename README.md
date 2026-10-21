@@ -41,7 +41,7 @@ Everyone in the household gets their own profile.
 |---|---|
 | 👕 **Digital wardrobe** | Take a photo or pick several from the gallery; Wardro removes the background (server-side, with [rembg](https://github.com/danielgatis/rembg)), tags the dominant colour, and files the piece under Top / Bottom / Outerwear / Shoes |
 | 🎨 **Quick Match** | Free, fully offline outfit generator that ranks combinations by colour harmony — a curated [Sanzo Wada](https://en.wikipedia.org/wiki/Sanzo_Wada) palette blended with a hue-distance model |
-| 🤖 **AI Stylist** | Sends your wardrobe photos to Claude with the occasion (Casual / Smart Casual / Formal / Evening), season and live weather, and gets back curated combinations with the reasoning behind each |
+| 🤖 **AI Stylist** | Sends your wardrobe photos to Claude with the occasion (Casual / Smart Casual / Formal / Evening), season and live weather, and gets back curated combinations with the reasoning behind each — never one you've already been shown or saved |
 | 🧳 **Packing List** | Plans one outfit per day for a trip (up to two weeks), using each day's forecast at your destination |
 | 👥 **Profiles** | "Who's getting dressed?" — each person picks their name and gets their own wardrobe, saved outfits and appearance; no passwords |
 | 🪞 **Two looks** | *Tailor's navy* or *Colour story*, each in light and dark, chosen per profile |

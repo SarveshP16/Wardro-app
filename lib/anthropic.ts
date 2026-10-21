@@ -91,11 +91,15 @@ interface GenerateAiOutfitsOptions {
   weather?: WeatherSnapshot | null;
   /// null/omitted means no season preference ("any season").
   season?: Season | null;
-  /// Item-id sets already suggested earlier this session (across either
-  /// engine) -- see outfits/page.tsx's `seenSignatures`. Claude is asked
-  /// not to repeat these, and any it returns anyway are filtered out
-  /// defensively (see `parseOutfits`).
+  /// Item-id sets Claude is told not to repeat, listed in the prompt.
+  /// Keep this short (it costs tokens on every call) -- the most recent
+  /// and most relevant combos; see app/api/outfits/generate/ai/route.ts.
   excludeCombos?: string[][];
+  /// Every outfit signature (see lib/outfitSignature.ts) that must never
+  /// be shown again -- the full history, which can be far longer than
+  /// what fits in the prompt. Results matching one are dropped. Defaults
+  /// to the signatures of `excludeCombos`.
+  alreadySeen?: Set<string>;
 }
 
 async function resizeForApi(bytes: Buffer): Promise<Buffer> {
@@ -175,6 +179,8 @@ export async function generateAiOutfits(
     season = null,
     excludeCombos = [],
   } = options;
+  const alreadySeen =
+    options.alreadySeen ?? new Set(excludeCombos.map(outfitSignature));
 
   if (items.length === 0) {
     throw new OutfitGenerationError("Add some wardrobe items first.");
@@ -206,99 +212,114 @@ export async function generateAiOutfits(
       "alongside the occasion."
     : "";
 
-  const avoidHint =
-    excludeCombos.length > 0
-      ? " Avoid exactly repeating any of these item-id combinations, " +
-        "already suggested earlier: " +
-        excludeCombos.map((ids) => `[${ids.join(", ")}]`).join("; ") +
-        " -- propose different combinations instead."
-      : "";
+  // Encoded once and reused if the request has to be retried.
+  const imageBlocks = await wardrobeImageBlocks(eligibleItems);
 
-  const content: ContentBlock[] = [
-    {
+  const requestOutfits = async (avoidCombos: string[][]) => {
+    const content: ContentBlock[] = [
+      {
+        type: "text",
+        text:
+          `You are a fashion stylist choosing outfits from a user's own ` +
+          `wardrobe for a '${styleLabel}' occasion.${weatherHint}${seasonHint} ` +
+          "Each image below is one wardrobe item; its id and category are " +
+          "given right before it. Only ever use the item ids provided -- " +
+          `never invent one.${avoidHintFor(avoidCombos)}`,
+      },
+      ...imageBlocks,
+    ];
+
+    const appropriatenessFactors = [
+      "the occasion",
+      weather ? "weather" : null,
+      season ? "season" : null,
+    ]
+      .filter((factor): factor is string => factor !== null)
+      .join(" and ");
+
+    content.push({
       type: "text",
       text:
-        `You are a fashion stylist choosing outfits from a user's own ` +
-        `wardrobe for a '${styleLabel}' occasion.${weatherHint}${seasonHint} ` +
-        "Each image below is one wardrobe item; its id and category are " +
-        "given right before it. Only ever use the item ids provided -- " +
-        `never invent one.${avoidHint}`,
-    },
-    ...(await wardrobeImageBlocks(eligibleItems)),
-  ];
-
-  const appropriatenessFactors = [
-    "the occasion",
-    weather ? "weather" : null,
-    season ? "season" : null,
-  ]
-    .filter((factor): factor is string => factor !== null)
-    .join(" and ");
-
-  content.push({
-    type: "text",
-    text:
-      `Propose exactly ${OUTFIT_COUNT} distinct outfit combinations suited ` +
-      `to a ${styleLabel} occasion, each using 2-4 of the items above (mix ` +
-      `categories sensibly: ${categoryHint}). Favor combinations that ` +
-      "genuinely look good together -- color and pattern harmony, and " +
-      `appropriateness for ${appropriatenessFactors}.`,
-  });
-
-  let response: Response;
-  try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4096,
-        messages: [{ role: "user", content }],
-        output_config: {
-          format: { type: "json_schema", schema: OUTFITS_SCHEMA },
-        },
-      }),
-      signal: AbortSignal.timeout(60000),
+        `Propose exactly ${OUTFIT_COUNT} distinct outfit combinations suited ` +
+        `to a ${styleLabel} occasion, each using 2-4 of the items above (mix ` +
+        `categories sensibly: ${categoryHint}). Favor combinations that ` +
+        "genuinely look good together -- color and pattern harmony, and " +
+        `appropriateness for ${appropriatenessFactors}.`,
     });
-  } catch {
-    throw new OutfitGenerationError(
-      "Could not reach Claude. Check your connection and try again.",
-    );
-  }
 
-  if (!response.ok) {
-    let message = `Outfit generation failed (${response.status}).`;
+    let response: Response;
     try {
-      const body = await response.json();
-      if (typeof body?.error?.message === "string") {
-        message = body.error.message;
-      }
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": ANTHROPIC_VERSION,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 4096,
+          messages: [{ role: "user", content }],
+          output_config: {
+            format: { type: "json_schema", schema: OUTFITS_SCHEMA },
+          },
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
     } catch {
-      // Keep the generic message above.
+      throw new OutfitGenerationError(
+        "Could not reach Claude. Check your connection and try again.",
+      );
     }
-    throw new OutfitGenerationError(message);
-  }
 
-  const excludeSignatures = new Set(excludeCombos.map(outfitSignature));
-  const body = await response.json();
-  const outfits = parseOutfits(body, validIds, excludeSignatures);
-  if (outfits.length === 0) {
+    if (!response.ok) {
+      let message = `Outfit generation failed (${response.status}).`;
+      try {
+        const body = await response.json();
+        if (typeof body?.error?.message === "string") {
+          message = body.error.message;
+        }
+      } catch {
+        // Keep the generic message above.
+      }
+      throw new OutfitGenerationError(message);
+    }
+
+    return parseOutfits(await response.json(), validIds, alreadySeen);
+  };
+
+  let result = await requestOutfits(excludeCombos);
+  // Every proposal was something already shown or saved (the prompt only
+  // lists recent history): ask once more, naming those combos too.
+  if (result.outfits.length === 0 && result.repeats.length > 0) {
+    result = await requestOutfits([...excludeCombos, ...result.repeats]);
+  }
+  if (result.outfits.length === 0) {
     throw new OutfitGenerationError(
-      "Could not put together an outfit from these items. Try a different style.",
+      result.repeats.length > 0
+        ? "No new outfits for these settings -- the AI Stylist only came up " +
+          "with ones you've already seen or saved. Try another occasion or " +
+          "season, or add more pieces."
+        : "Could not put together an outfit from these items. Try a different style.",
     );
   }
-  return outfits;
+  return result.outfits;
+}
+
+function avoidHintFor(combos: string[][]): string {
+  return combos.length > 0
+    ? " Avoid exactly repeating any of these item-id combinations, " +
+        "already suggested or saved earlier: " +
+        combos.map((ids) => `[${ids.join(", ")}]`).join("; ") +
+        " -- propose different combinations instead."
+    : "";
 }
 
 function parseOutfits(
   body: Record<string, unknown>,
   validIds: Set<string>,
-  excludeSignatures: Set<string>,
-): GeneratedOutfit[] {
+  alreadySeen: Set<string>,
+): { outfits: GeneratedOutfit[]; repeats: string[][] } {
   if (body.stop_reason === "refusal") {
     throw new OutfitGenerationError(
       "Claude declined to generate outfits for this request.",
@@ -324,20 +345,25 @@ function parseOutfits(
   const rawOutfits = parsed.outfits ?? [];
 
   // Defensive: drop any hallucinated item id, any outfit left empty by
-  // that, and any exact repeat of a combination Claude was asked to avoid
-  // (the prompt hint above is usually enough, but isn't guaranteed).
+  // that, and any exact repeat of something already shown or saved (the
+  // prompt hint is usually enough, but isn't guaranteed -- and only lists
+  // recent history).
   const cleaned: GeneratedOutfit[] = [];
+  const repeats: string[][] = [];
   for (const raw of rawOutfits) {
     const itemIds = (raw.itemIds ?? []).filter((id) => validIds.has(id));
     if (itemIds.length === 0) continue;
-    if (excludeSignatures.has(outfitSignature(itemIds))) continue;
+    if (alreadySeen.has(outfitSignature(itemIds))) {
+      repeats.push(itemIds);
+      continue;
+    }
     cleaned.push({
       title: raw.title ?? "Outfit",
       rationale: raw.rationale ?? "",
       itemIds,
     });
   }
-  return cleaned;
+  return { outfits: cleaned, repeats };
 }
 
 interface GenerateAiPackingListOptions {

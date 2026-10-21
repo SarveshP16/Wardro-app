@@ -9,6 +9,12 @@ it's built for personal use rather than public releases.
 ## [Unreleased]
 
 ### Added
+- **The AI Stylist never repeats itself.** It remembers every outfit it
+  has shown each profile (across visits and devices) and never suggests
+  one again, nor one you've already saved. Recent ones are named in the
+  prompt; the full history filters the results, with one automatic retry
+  if everything it proposes was already seen. Quick Match and Packing
+  List are unchanged.
 - **iPhone and iPad:** add Wardro to the home screen from Safari and it
   opens full-screen like an app (web app manifest + iOS home-screen tags).
   Chrome and Edge also offer "Install app" (over HTTPS, e.g. via
