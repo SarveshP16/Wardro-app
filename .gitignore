@@ -54,3 +54,6 @@ android/keystore.properties
 
 # local database backups (pg_dump) -- personal data, never commit
 /*.sql
+
+# personal to-do list -- local only
+/TODO.md
