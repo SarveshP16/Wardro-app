@@ -1,19 +1,32 @@
+import { ROLE_OF, rolesOf, type OutfitRole } from "./categories";
 import { hybridScore, describe } from "./colorHarmony";
 import { CATEGORY_LABELS } from "./labels";
 import { outfitSignature } from "./outfitSignature";
 import { ClothingItem, GeneratedOutfit, OutfitGenerationError } from "./types";
 
-/// Quick Match -- free, fully offline outfit generation: ranks top+bottom(+outerwear)(+shoes)
+/// Quick Match -- free, fully offline outfit generation: ranks
 /// combinations from the user's own wardrobe purely by color harmony, no
 /// network call, no occasion awareness (that's what the paid AI Stylist
 /// adds). Runs entirely client-side.
+///
+/// An outfit is a top + a bottom, or a one-piece (dress, jumpsuit) on its
+/// own, plus optionally outerwear and shoes (see lib/categories.ts). A
+/// piece with several categories can fill any of their roles, but never
+/// two in the same outfit.
 
 const FALLBACK_NEUTRAL = 0x9e9e9e;
+/// A dress or jumpsuit worn on its own has no color pairs to score, but
+/// it's harmonious with itself -- rate it like pairing with a neutral, so
+/// it competes with other outfits instead of always ranking last.
+const LONE_PIECE_SCORE = 0.85;
 const MAX_COMBOS_EVALUATED = 2000;
 export const MAX_RESULT_COUNT = 8;
 
+/// A piece and the role it plays in a combination.
+type Placed = { item: ClothingItem; role: OutfitRole };
+
 interface ScoredCombo {
-  items: ClothingItem[];
+  pieces: Placed[];
   score: number;
   title: string;
   rationale: string;
@@ -32,14 +45,15 @@ interface QuickMatchOptions {
   excludeSignatures?: ReadonlySet<string>;
 }
 
-function scoreCombo(
-  top: ClothingItem,
-  bottom: ClothingItem,
-  outer: ClothingItem | null,
-  shoe: ClothingItem | null,
-): ScoredCombo {
-  const items = [top, bottom, ...(outer ? [outer] : []), ...(shoe ? [shoe] : [])];
-  const colors = items.map((i) => i.dominantColor ?? FALLBACK_NEUTRAL);
+/// "Dress", "Skirt", "Top"... -- the piece's category that matches the
+/// role it's playing.
+function roleLabel({ item, role }: Placed): string {
+  const category = item.categories.find((c) => ROLE_OF[c] === role);
+  return category ? CATEGORY_LABELS[category] : role;
+}
+
+function scoreCombo(pieces: Placed[]): ScoredCombo {
+  const colors = pieces.map((p) => p.item.dominantColor ?? FALLBACK_NEUTRAL);
 
   let total = 0;
   let pairs = 0;
@@ -49,28 +63,20 @@ function scoreCombo(
       pairs++;
     }
   }
-  const score = pairs === 0 ? 0 : total / pairs;
+  const score = pairs === 0 ? LONE_PIECE_SCORE : total / pairs;
 
-  const title = describe(
-    top.dominantColor ?? FALLBACK_NEUTRAL,
-    bottom.dominantColor ?? FALLBACK_NEUTRAL,
-  );
-  const pieces = [
-    CATEGORY_LABELS[top.category],
-    CATEGORY_LABELS[bottom.category],
-    outer ? CATEGORY_LABELS[outer.category] : null,
-    shoe ? CATEGORY_LABELS[shoe.category] : null,
-  ]
-    .filter((label): label is string => label !== null)
-    .join(" + ");
-
+  // Titled after the two main pieces (a one-piece pairs with whatever
+  // comes next -- outerwear or shoes -- or with itself).
+  const title = describe(colors[0], colors[1] ?? colors[0]);
   return {
-    items,
+    pieces,
     score,
     title,
-    rationale: `Quick Match paired these by color: ${pieces}.`,
+    rationale: `Quick Match paired these by color: ${pieces.map(roleLabel).join(" + ")}.`,
   };
 }
+
+const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 
 export function generateQuickMatchOutfits(
   options: QuickMatchOptions,
@@ -83,32 +89,54 @@ export function generateQuickMatchOutfits(
     excludeSignatures,
   } = options;
 
-  const tops = items.filter((i) => i.category === "top");
-  const bottoms = items.filter((i) => i.category === "bottom");
-  const outerwear = includeOuterwear
-    ? items.filter((i) => i.category === "outerwear")
-    : [];
-  const shoes = includeShoes ? items.filter((i) => i.category === "shoes") : [];
+  const withRole = (role: OutfitRole) =>
+    items.filter((i) => rolesOf(i).includes(role));
+  const tops = withRole("top");
+  const bottoms = withRole("bottom");
+  const onePieces = withRole("onepiece");
+  const outerwear = includeOuterwear ? withRole("outerwear") : [];
+  const shoes = includeShoes ? withRole("shoes") : [];
 
-  if (tops.length === 0 || bottoms.length === 0) {
+  // The core of every outfit: a top + a bottom, or a one-piece.
+  const bases: Placed[][] = [];
+  for (const top of tops) {
+    for (const bottom of bottoms) {
+      if (top.id !== bottom.id) {
+        bases.push([{ item: top, role: "top" }, { item: bottom, role: "bottom" }]);
+      }
+    }
+  }
+  for (const onePiece of onePieces) bases.push([{ item: onePiece, role: "onepiece" }]);
+
+  if (bases.length === 0) {
     throw new OutfitGenerationError(
-      "Add at least one top and one bottom to use Quick Match.",
+      "Add a top and a bottom, or a dress or jumpsuit, to use Quick Match.",
     );
   }
 
-  const outerwearOptions: (ClothingItem | null)[] = [null, ...outerwear];
-  const shoeOptions: (ClothingItem | null)[] = [null, ...shoes];
-  const totalCombos =
-    tops.length * bottoms.length * outerwearOptions.length * shoeOptions.length;
+  /// Outerwear/shoes options for a base: none, or any piece not already in it.
+  const extras = (base: Placed[], list: ClothingItem[]) => [
+    null,
+    ...list.filter((item) => !base.some((p) => p.item.id === item.id)),
+  ];
+  const withExtras = (
+    base: Placed[],
+    outer: ClothingItem | null,
+    shoe: ClothingItem | null,
+  ): Placed[] => [
+    ...base,
+    ...(outer ? [{ item: outer, role: "outerwear" as const }] : []),
+    ...(shoe && shoe.id !== outer?.id ? [{ item: shoe, role: "shoes" as const }] : []),
+  ];
 
+  const totalCombos = bases.length * (outerwear.length + 1) * (shoes.length + 1);
   const combos: ScoredCombo[] = [];
   if (totalCombos <= MAX_COMBOS_EVALUATED) {
-    for (const top of tops) {
-      for (const bottom of bottoms) {
-        for (const outer of outerwearOptions) {
-          for (const shoe of shoeOptions) {
-            combos.push(scoreCombo(top, bottom, outer, shoe));
-          }
+    for (const base of bases) {
+      for (const outer of extras(base, outerwear)) {
+        for (const shoe of extras(base, shoes)) {
+          if (shoe && shoe.id === outer?.id) continue;
+          combos.push(scoreCombo(withExtras(base, outer, shoe)));
         }
       }
     }
@@ -116,13 +144,9 @@ export function generateQuickMatchOutfits(
     // Wardrobe is large enough that full enumeration isn't worth it --
     // random-sample the combination space instead of scoring all of it.
     for (let i = 0; i < MAX_COMBOS_EVALUATED; i++) {
+      const base = pick(bases);
       combos.push(
-        scoreCombo(
-          tops[Math.floor(Math.random() * tops.length)],
-          bottoms[Math.floor(Math.random() * bottoms.length)],
-          outerwearOptions[Math.floor(Math.random() * outerwearOptions.length)],
-          shoeOptions[Math.floor(Math.random() * shoeOptions.length)],
-        ),
+        scoreCombo(withExtras(base, pick(extras(base, outerwear)), pick(extras(base, shoes)))),
       );
     }
   }
@@ -140,7 +164,7 @@ export function generateQuickMatchOutfits(
     if (chosen.length === resultCount) break;
     for (const combo of combos) {
       if (chosen.length === resultCount) break;
-      const signature = outfitSignature(combo.items.map((i) => i.id));
+      const signature = outfitSignature(combo.pieces.map((p) => p.item.id));
       if (chosenSignatures.has(signature)) continue;
       if (avoidSeen && excludeSignatures?.has(signature)) continue;
       chosenSignatures.add(signature);
@@ -156,6 +180,6 @@ export function generateQuickMatchOutfits(
   return chosen.map((combo) => ({
     title: combo.title,
     rationale: combo.rationale,
-    itemIds: combo.items.map((i) => i.id),
+    itemIds: combo.pieces.map((p) => p.item.id),
   }));
 }

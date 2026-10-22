@@ -1,11 +1,13 @@
 import sharp from "sharp";
 
 import { readImage } from "./imageStore";
+import { ROLE_OF } from "./categories";
 import { SEASON_LABELS, STYLE_LABELS } from "./labels";
 import { outfitSignature } from "./outfitSignature";
 import { MAX_TRIP_DAYS } from "./packingList";
 import {
   ClothingItem,
+  Gender,
   GeneratedOutfit,
   OutfitGenerationError,
   OutfitStyle,
@@ -51,10 +53,11 @@ const OUTFITS_SCHEMA = {
   additionalProperties: false,
 };
 
-/// Packing List's schema -- same shape as OUTFITS_SCHEMA plus a `date` per
-/// outfit, which Claude is asked to echo back from the itinerary so the
-/// response can be matched to days by date rather than by array order
-/// (see parsePackingOutfits).
+/// Packing List's schema -- same shape as OUTFITS_SCHEMA plus the `dates`
+/// each outfit is worn on (a trip can have fewer outfits than days, re-worn),
+/// which Claude echoes back from the itinerary so the response can be
+/// matched to days by date rather than by array order (see
+/// parsePackingOutfits).
 const PACKING_LIST_SCHEMA = {
   type: "object",
   properties: {
@@ -63,12 +66,12 @@ const PACKING_LIST_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          date: { type: "string" },
+          dates: { type: "array", items: { type: "string" } },
           title: { type: "string" },
           rationale: { type: "string" },
           itemIds: { type: "array", items: { type: "string" } },
         },
-        required: ["date", "title", "rationale", "itemIds"],
+        required: ["dates", "title", "rationale", "itemIds"],
         additionalProperties: false,
       },
     },
@@ -86,6 +89,8 @@ interface ContentBlock {
 interface GenerateAiOutfitsOptions {
   items: ClothingItem[];
   style: OutfitStyle;
+  /// Whose wardrobe this is, when the profile says (Settings → Clothing).
+  gender?: Gender;
   includeOuterwear?: boolean;
   includeShoes?: boolean;
   weather?: WeatherSnapshot | null;
@@ -107,31 +112,82 @@ async function resizeForApi(bytes: Buffer): Promise<Buffer> {
 }
 
 /// Only offer the categories the user asked to include -- excluded ones
-/// never reach the prompt at all, so Claude can't reach for them. Shared
-/// by generateAiOutfits and generateAiPackingList.
+/// never reach the prompt at all, so Claude can't reach for them. A piece
+/// with several categories keeps the others (an overshirt stays on offer
+/// as a top when outerwear is off). Shared by generateAiOutfits and
+/// generateAiPackingList.
 function selectEligibleItems(
   items: ClothingItem[],
   includeOuterwear: boolean,
   includeShoes: boolean,
 ): ClothingItem[] {
-  return items.filter((item) => {
-    if (!includeOuterwear && item.category === "outerwear") return false;
-    if (!includeShoes && item.category === "shoes") return false;
-    return true;
-  });
+  return items
+    .map((item) => ({
+      ...item,
+      categories: item.categories.filter(
+        (c) =>
+          (includeOuterwear || c !== "outerwear") && (includeShoes || c !== "shoes"),
+      ),
+    }))
+    .filter((item) => item.categories.length > 0);
 }
 
-/// Describes which categories are on offer, for the "mix categories
-/// sensibly" instruction. Shared by generateAiOutfits and
+/// How outfits are built, for the "mix categories sensibly" instruction
+/// (see lib/categories.ts). Shared by generateAiOutfits and
 /// generateAiPackingList.
-function categoryHintFor(includeOuterwear: boolean, includeShoes: boolean): string {
-  return includeOuterwear && includeShoes
-    ? "a top, a bottom, and optionally outerwear and/or shoes"
-    : includeOuterwear
-      ? "a top, a bottom, and optionally outerwear (no shoes are offered)"
-      : includeShoes
-        ? "a top, a bottom, and optionally shoes (no outerwear is offered)"
-        : "a top and a bottom (no outerwear or shoes are offered)";
+function categoryHintFor(
+  eligibleItems: ClothingItem[],
+  includeOuterwear: boolean,
+  includeShoes: boolean,
+): string {
+  const roles = new Set(eligibleItems.flatMap((i) => i.categories.map((c) => ROLE_OF[c])));
+  const core = roles.has("onepiece")
+    ? "either a top and a bottom (a skirt counts as a bottom), or a one-piece " +
+      "(a dress or jumpsuit) instead of both"
+    : "a top and a bottom";
+  const extras = [includeOuterwear ? "outerwear" : null, includeShoes ? "shoes" : null]
+    .filter((x): x is string => x !== null)
+    .join(" and/or ");
+  const missing = [!includeOuterwear ? "outerwear" : null, !includeShoes ? "shoes" : null]
+    .filter((x): x is string => x !== null)
+    .join(" or ");
+  return (
+    core +
+    (extras ? `, plus optionally ${extras}` : "") +
+    (missing ? ` (no ${missing} are offered)` : "") +
+    ". A piece listed with several categories can fill any one of them, " +
+    "but never appears twice in one outfit"
+  );
+}
+
+/// What each occasion means, so Claude reads e.g. "Active" or "Wedding
+/// guest" the way the user does.
+const STYLE_HINTS: Record<OutfitStyle, string> = {
+  casual: "relaxed everyday wear",
+  smart_casual: "polished but not formal",
+  work: "office-appropriate business casual",
+  interview: "polished, conservative and confidence-building",
+  formal: "tailored and formal",
+  evening: "dressed up for an evening out",
+  date_night: "flattering and a little elevated, for a date",
+  party: "fun and a little bolder, for a party",
+  wedding_guest: "dressed up for a wedding as a guest -- not black tie, and never all white",
+  active: "practical, easy-to-move-in pieces for exercise or an active day",
+  travel: "comfortable, layered and easy to wear on a travel day",
+  beach: "light, breathable resort wear for the beach",
+  lounge: "comfortable, easy pieces for relaxing at home",
+};
+
+function occasionText(style: OutfitStyle): string {
+  return `'${STYLE_LABELS[style]}' occasion (${STYLE_HINTS[style]})`;
+}
+
+function genderHint(gender: Gender | undefined): string {
+  return gender === "women"
+    ? " The wardrobe belongs to a woman."
+    : gender === "men"
+      ? " The wardrobe belongs to a man."
+      : "";
 }
 
 /// One (id + category) text block and one image block per eligible item
@@ -146,7 +202,10 @@ async function wardrobeImageBlocks(
     const resized = await resizeForApi(original);
     blocks.push({
       type: "text",
-      text: `item id: ${item.id} | category: ${item.category}`,
+      text:
+        item.categories.length > 1
+          ? `item id: ${item.id} | categories: ${item.categories.join(", ")} (use as any one)`
+          : `item id: ${item.id} | category: ${item.categories[0]}`,
     });
     blocks.push({
       type: "image",
@@ -178,6 +237,7 @@ export async function generateAiOutfits(
     weather = null,
     season = null,
     excludeCombos = [],
+    gender,
   } = options;
   const alreadySeen =
     options.alreadySeen ?? new Set(excludeCombos.map(outfitSignature));
@@ -195,7 +255,7 @@ export async function generateAiOutfits(
 
   const styleLabel = STYLE_LABELS[style];
   const validIds = new Set(eligibleItems.map((item) => item.id));
-  const categoryHint = categoryHintFor(includeOuterwear, includeShoes);
+  const categoryHint = categoryHintFor(eligibleItems, includeOuterwear, includeShoes);
 
   const weatherHint = weather
     ? ` The current weather is ${weather.condition.toLowerCase()}${
@@ -221,7 +281,7 @@ export async function generateAiOutfits(
         type: "text",
         text:
           `You are a fashion stylist choosing outfits from a user's own ` +
-          `wardrobe for a '${styleLabel}' occasion.${weatherHint}${seasonHint} ` +
+          `wardrobe for a ${occasionText(style)}.${genderHint(gender)}${weatherHint}${seasonHint} ` +
           "Each image below is one wardrobe item; its id and category are " +
           "given right before it. Only ever use the item ids provided -- " +
           `never invent one.${avoidHintFor(avoidCombos)}`,
@@ -241,7 +301,7 @@ export async function generateAiOutfits(
       type: "text",
       text:
         `Propose exactly ${OUTFIT_COUNT} distinct outfit combinations suited ` +
-        `to a ${styleLabel} occasion, each using 2-4 of the items above (mix ` +
+        `to a ${styleLabel} occasion, each using 1-4 of the items above (mix ` +
         `categories sensibly: ${categoryHint}). Favor combinations that ` +
         "genuinely look good together -- color and pattern harmony, and " +
         `appropriateness for ${appropriatenessFactors}.`,
@@ -369,6 +429,10 @@ function parseOutfits(
 interface GenerateAiPackingListOptions {
   items: ClothingItem[];
   style: OutfitStyle;
+  gender?: Gender;
+  /// How many distinct outfits to plan for the whole trip (1 .. days);
+  /// fewer than days means some are re-worn. Defaults to one per day.
+  outfitCount?: number;
   includeOuterwear?: boolean;
   includeShoes?: boolean;
   /// Fallback for any day without a weather forecast (too far ahead --
@@ -406,7 +470,12 @@ export async function generateAiPackingList(
     season = null,
     days,
     excludeCombos = [],
+    gender,
   } = options;
+  const outfitCount = Math.min(
+    Math.max(Math.round(options.outfitCount ?? days.length), 1),
+    days.length,
+  );
 
   if (days.length === 0) {
     throw new OutfitGenerationError("Add at least one day to plan a trip.");
@@ -425,9 +494,8 @@ export async function generateAiPackingList(
     );
   }
 
-  const styleLabel = STYLE_LABELS[style];
   const validIds = new Set(eligibleItems.map((item) => item.id));
-  const categoryHint = categoryHintFor(includeOuterwear, includeShoes);
+  const categoryHint = categoryHintFor(eligibleItems, includeOuterwear, includeShoes);
   const hasAnyWeather = days.some((day) => day.weather !== null);
 
   const dayLines = days
@@ -467,8 +535,8 @@ export async function generateAiPackingList(
       type: "text",
       text:
         `You are a fashion stylist packing a ${days.length}-day trip's ` +
-        `outfits from a user's own wardrobe for a '${styleLabel}' ` +
-        "occasion. Here is the itinerary, one line per day (date: " +
+        `outfits from a user's own wardrobe for a ${occasionText(style)}.` +
+        `${genderHint(gender)} Here is the itinerary, one line per day (date: ` +
         `conditions):\n${dayLines}\n\n` +
         "Each image below is one wardrobe item; its id and category are " +
         "given right before it. Only ever use the item ids provided -- " +
@@ -478,13 +546,19 @@ export async function generateAiPackingList(
     {
       type: "text",
       text:
-        `Propose exactly ${days.length} outfits, one for each date above ` +
-        `(set "date" to that exact date string), each using 2-4 of the ` +
-        `items above (mix categories sensibly: ${categoryHint}). Favor ` +
-        "combinations that genuinely look good together -- color and " +
-        `pattern harmony, and appropriateness for ${appropriatenessFactors}. ` +
-        "Vary the combinations across days as much as the wardrobe allows " +
-        "so the trip doesn't repeat the same look day after day.",
+        (outfitCount === days.length
+          ? `Propose exactly ${days.length} outfits, one for each date above ` +
+            '(set "dates" to that one exact date string)'
+          : `Pack light: propose exactly ${outfitCount} distinct outfits to ` +
+            `cover all ${days.length} dates above, re-wearing them across the ` +
+            'trip. Set each outfit\'s "dates" to the exact date strings it is ' +
+            "worn on, so that every date appears in exactly one outfit, and " +
+            "favor pieces that work across several of the outfits") +
+        `, each outfit using 1-4 of the items above (mix categories ` +
+        `sensibly: ${categoryHint}). Favor combinations that genuinely look ` +
+        "good together -- color and pattern harmony, and appropriateness " +
+        `for ${appropriatenessFactors}. Vary the combinations as much as the ` +
+        "wardrobe allows so the trip doesn't repeat the same look.",
     },
   ];
 
@@ -499,8 +573,8 @@ export async function generateAiPackingList(
       },
       body: JSON.stringify({
         model: MODEL,
-        // Scales with trip length -- one call covers every day.
-        max_tokens: 1024 + days.length * 512,
+        // Scales with the number of outfits -- one call covers the trip.
+        max_tokens: 1024 + outfitCount * 512 + days.length * 32,
         messages: [{ role: "user", content }],
         output_config: {
           format: { type: "json_schema", schema: PACKING_LIST_SCHEMA },
@@ -563,7 +637,7 @@ function parsePackingOutfits(
 
   const parsed = JSON.parse(textBlock.text) as {
     outfits?: Array<{
-      date?: string;
+      dates?: string[];
       title?: string;
       rationale?: string;
       itemIds?: string[];
@@ -571,13 +645,13 @@ function parsePackingOutfits(
   };
   const rawOutfits = parsed.outfits ?? [];
 
-  // Match by date first (Claude was asked to echo the exact date string
-  // back). Anything with an unrecognized or duplicate date is banked and
-  // handed to whichever requested day is still missing an outfit, in
-  // order -- same defensive spirit as parseOutfits' id filtering, since a
-  // structured schema still isn't a hard guarantee of a clean 1:1 match.
+  // Match by the dates Claude echoed back. A date claimed by two outfits
+  // goes to the first; any date left uncovered (or an outfit with no
+  // recognised date) is filled in from the outfits in order -- same
+  // defensive spirit as parseOutfits' id filtering, since a structured
+  // schema still isn't a hard guarantee of a clean match.
   const byDate = new Map<string, GeneratedOutfit>();
-  const unmatched: GeneratedOutfit[] = [];
+  const outfits: GeneratedOutfit[] = [];
   const knownDates = new Set(days.map((day) => day.date));
   for (const raw of rawOutfits) {
     const itemIds = (raw.itemIds ?? []).filter((id) => validIds.has(id));
@@ -587,16 +661,23 @@ function parsePackingOutfits(
       rationale: raw.rationale ?? "",
       itemIds,
     };
-    if (raw.date && knownDates.has(raw.date) && !byDate.has(raw.date)) {
-      byDate.set(raw.date, outfit);
-    } else {
-      unmatched.push(outfit);
+    outfits.push(outfit);
+    for (const date of raw.dates ?? []) {
+      if (knownDates.has(date) && !byDate.has(date)) byDate.set(date, outfit);
     }
   }
 
   const result: PackingDayOutfit[] = [];
+  let next = 0;
   for (const day of days) {
-    const outfit = byDate.get(day.date) ?? unmatched.shift();
+    let outfit = byDate.get(day.date);
+    if (!outfit && outfits.length > 0) {
+      // Prefer an outfit not yet worn; otherwise cycle through them.
+      outfit =
+        outfits.find((o) => ![...byDate.values()].includes(o)) ??
+        outfits[next++ % outfits.length];
+      byDate.set(day.date, outfit);
+    }
     if (outfit) result.push({ date: day.date, outfit, weather: day.weather });
   }
   return result;

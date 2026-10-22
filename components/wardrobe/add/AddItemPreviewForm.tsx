@@ -21,13 +21,13 @@ export function AddItemPreviewForm({
   saving: boolean;
   error: string | null;
   onSave: (data: {
-    category: ClothingCategory;
+    categories: ClothingCategory[];
     name: string | null;
     cutout: string;
   }) => void;
   onSkip: () => void;
 }) {
-  const [category, setCategory] = useState<ClothingCategory>("top");
+  const [categories, setCategories] = useState<ClothingCategory[]>(["top"]);
   const [name, setName] = useState("");
   const [cutout, setCutout] = useState(cutoutBase64);
   const [rotating, setRotating] = useState(false);
@@ -76,7 +76,7 @@ export function AddItemPreviewForm({
 
       <div className="flex flex-col gap-2">
         <p className="text-[13px] font-semibold">Category</p>
-        <CategorySelector value={category} onChange={setCategory} />
+        <CategorySelector value={categories} onChange={setCategories} />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -104,7 +104,7 @@ export function AddItemPreviewForm({
           Skip
         </Button>
         <Button
-          onClick={() => onSave({ category, name: name.trim() || null, cutout })}
+          onClick={() => onSave({ categories, name: name.trim() || null, cutout })}
           disabled={saving || rotating}
           className="flex-1"
         >

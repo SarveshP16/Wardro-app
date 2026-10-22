@@ -1,18 +1,40 @@
-import type { ClothingCategory, OutfitStyle, Season } from "./types";
+import type { ClothingCategory, Gender, OutfitStyle, Season } from "./types";
 
-/// Display labels for categories, occasion styles, and seasons.
+/// Display labels for categories, occasion styles, seasons and genders.
 export const CATEGORY_LABELS: Record<ClothingCategory, string> = {
   top: "Top",
   bottom: "Bottom",
+  skirt: "Skirt",
+  dress: "Dress",
+  jumpsuit: "Jumpsuit",
+  outerwear: "Outerwear",
+  shoes: "Shoes",
+};
+
+export const CATEGORY_PLURALS: Record<ClothingCategory, string> = {
+  top: "Tops",
+  bottom: "Bottoms",
+  skirt: "Skirts",
+  dress: "Dresses",
+  jumpsuit: "Jumpsuits",
   outerwear: "Outerwear",
   shoes: "Shoes",
 };
 
 export const STYLE_LABELS: Record<OutfitStyle, string> = {
   casual: "Casual",
-  smart_casual: "Smart Casual",
+  smart_casual: "Smart casual",
+  work: "Work",
+  interview: "Interview",
   formal: "Formal",
   evening: "Evening",
+  date_night: "Date night",
+  party: "Party",
+  wedding_guest: "Wedding guest",
+  active: "Active",
+  travel: "Travel",
+  beach: "Beach",
+  lounge: "Lounge",
 };
 
 export const SEASON_LABELS: Record<Season, string> = {
@@ -22,47 +44,38 @@ export const SEASON_LABELS: Record<Season, string> = {
   winter: "Winter",
 };
 
-/// Maps a ClothingCategory <-> the Prisma `Category` enum's SCREAMING_CASE
-/// storage key.
-export function categoryToDb(
-  category: ClothingCategory,
-): "TOP" | "BOTTOM" | "OUTERWEAR" | "SHOES" {
-  return category.toUpperCase() as "TOP" | "BOTTOM" | "OUTERWEAR" | "SHOES";
+export const GENDER_LABELS: Record<Gender, string> = {
+  all: "Show all",
+  women: "Women",
+  men: "Men",
+};
+
+/// The Prisma enums store the same names in SCREAMING_CASE
+/// (`date_night` <-> `DATE_NIGHT`).
+type DbCategory = Uppercase<ClothingCategory>;
+type DbStyle = Uppercase<OutfitStyle>;
+type DbSeason = Uppercase<Season>;
+
+export function categoryToDb(category: ClothingCategory): DbCategory {
+  return category.toUpperCase() as DbCategory;
 }
 
-export function categoryFromDb(
-  category: "TOP" | "BOTTOM" | "OUTERWEAR" | "SHOES",
-): ClothingCategory {
+export function categoryFromDb(category: DbCategory): ClothingCategory {
   return category.toLowerCase() as ClothingCategory;
 }
 
-/// Maps an OutfitStyle <-> the Prisma `Style` enum's SCREAMING_CASE
-/// storage key.
-export function styleToDb(
-  style: OutfitStyle,
-): "CASUAL" | "SMART_CASUAL" | "FORMAL" | "EVENING" {
-  return style.toUpperCase() as
-    | "CASUAL"
-    | "SMART_CASUAL"
-    | "FORMAL"
-    | "EVENING";
+export function styleToDb(style: OutfitStyle): DbStyle {
+  return style.toUpperCase() as DbStyle;
 }
 
-export function styleFromDb(
-  style: "CASUAL" | "SMART_CASUAL" | "FORMAL" | "EVENING",
-): OutfitStyle {
+export function styleFromDb(style: DbStyle): OutfitStyle {
   return style.toLowerCase() as OutfitStyle;
 }
 
-/// Maps a Season <-> the Prisma `Season` enum's SCREAMING_CASE storage key.
-export function seasonToDb(
-  season: Season,
-): "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" {
-  return season.toUpperCase() as "SPRING" | "SUMMER" | "AUTUMN" | "WINTER";
+export function seasonToDb(season: Season): DbSeason {
+  return season.toUpperCase() as DbSeason;
 }
 
-export function seasonFromDb(
-  season: "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | null,
-): Season | null {
+export function seasonFromDb(season: DbSeason | null): Season | null {
   return season ? (season.toLowerCase() as Season) : null;
 }

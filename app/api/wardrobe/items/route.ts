@@ -4,25 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { saveImage } from "@/lib/imageStore";
 import { requireProfile } from "@/lib/profile";
-import { cleanItemName, decodePngCutout, isCategory } from "@/lib/validate";
-import { categoryFromDb, categoryToDb } from "@/lib/labels";
-import type { ClothingItem } from "@/lib/types";
-
-function toItem(row: {
-  id: string;
-  category: "TOP" | "BOTTOM" | "OUTERWEAR" | "SHOES";
-  name: string | null;
-  dominantColor: number | null;
-  createdAt: Date;
-}): ClothingItem {
-  return {
-    id: row.id,
-    category: categoryFromDb(row.category),
-    name: row.name,
-    dominantColor: row.dominantColor,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
+import { itemFromRow } from "@/lib/items";
+import { categoryToDb } from "@/lib/labels";
+import { cleanCategories, cleanItemName, decodePngCutout } from "@/lib/validate";
 
 export async function GET() {
   const auth = await requireProfile();
@@ -31,7 +15,7 @@ export async function GET() {
     where: { profileId: auth.id },
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json({ items: rows.map(toItem) });
+  return NextResponse.json({ items: rows.map(itemFromRow) });
 }
 
 /// Confirms an item staged by /api/wardrobe/items/process: decodes the
@@ -41,14 +25,15 @@ export async function POST(request: NextRequest) {
   const auth = await requireProfile();
   if (auth instanceof NextResponse) return auth;
   const body = await request.json();
-  const { category, name, dominantColor, cutout } = body as {
-    category?: unknown;
+  const { categories, name, dominantColor, cutout } = body as {
+    categories?: unknown;
     name?: unknown;
     dominantColor?: unknown;
     cutout?: unknown;
   };
 
-  if (!isCategory(category)) {
+  const cleanCats = cleanCategories(categories);
+  if (!cleanCats) {
     return NextResponse.json({ error: "Choose a category." }, { status: 400 });
   }
   const cleanName = cleanItemName(name);
@@ -77,11 +62,11 @@ export async function POST(request: NextRequest) {
     data: {
       id,
       profileId: auth.id,
-      category: categoryToDb(category),
+      categories: cleanCats.map(categoryToDb),
       name: cleanName,
       dominantColor: color,
     },
   });
 
-  return NextResponse.json({ item: toItem(row) }, { status: 201 });
+  return NextResponse.json({ item: itemFromRow(row) }, { status: 201 });
 }

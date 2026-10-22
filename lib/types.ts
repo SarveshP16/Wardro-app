@@ -39,20 +39,41 @@ export interface Profile {
   color: ProfileColor;
   themeMode: ThemeMode;
   look: Look;
+  gender: Gender;
 }
 
-export type ClothingCategory = "top" | "bottom" | "outerwear" | "shoes";
+export type ClothingCategory =
+  | "top"
+  | "bottom"
+  | "skirt"
+  | "dress"
+  | "jumpsuit"
+  | "outerwear"
+  | "shoes";
 
+/// Canonical order -- tabs, pickers, and each piece's `categories` list
+/// (whose first entry is its main category) all follow it.
 export const CLOTHING_CATEGORIES: ClothingCategory[] = [
   "top",
   "bottom",
+  "skirt",
+  "dress",
+  "jumpsuit",
   "outerwear",
   "shoes",
 ];
 
+/// Which categories a profile is offered: men's profiles don't see
+/// dresses, skirts and jumpsuits (see lib/categories.ts).
+export type Gender = "all" | "women" | "men";
+
+export const GENDERS: Gender[] = ["all", "women", "men"];
+
 export interface ClothingItem {
   id: string;
-  category: ClothingCategory;
+  /// One or more, in canonical order (CLOTHING_CATEGORIES); the first is
+  /// the main one -- see lib/categories.ts's primaryCategory.
+  categories: ClothingCategory[];
   name: string | null;
   /// Packed 0xRRGGBB average color of the cutout's opaque pixels, or null
   /// for items saved before this existed. See lib/dominantColor.ts.
@@ -60,13 +81,35 @@ export interface ClothingItem {
   createdAt: string;
 }
 
-export type OutfitStyle = "casual" | "smart_casual" | "formal" | "evening";
+export type OutfitStyle =
+  | "casual"
+  | "smart_casual"
+  | "work"
+  | "interview"
+  | "formal"
+  | "evening"
+  | "date_night"
+  | "party"
+  | "wedding_guest"
+  | "active"
+  | "travel"
+  | "beach"
+  | "lounge";
 
 export const OUTFIT_STYLES: OutfitStyle[] = [
   "casual",
   "smart_casual",
+  "work",
+  "interview",
   "formal",
   "evening",
+  "date_night",
+  "party",
+  "wedding_guest",
+  "active",
+  "travel",
+  "beach",
+  "lounge",
 ];
 
 /// Optional season filter for outfit generation -- the AI Stylist factors

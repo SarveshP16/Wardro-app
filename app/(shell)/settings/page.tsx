@@ -12,8 +12,11 @@ import { ProfileAvatar, ProfileColorPicker } from "@/components/profile/ProfileA
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Segmented";
 import { api } from "@/lib/api";
+import { GENDER_LABELS } from "@/lib/labels";
 import {
+  GENDERS,
   MAX_PROFILE_NAME_LENGTH,
+  type Gender,
   type Look,
   type ProfileColor,
   type ThemeMode,
@@ -76,6 +79,7 @@ export default function SettingsPage() {
   // Local copy of the saved theme so the control updates instantly
   // (next-themes' own value isn't known during server render).
   const [themeMode, setThemeMode] = useState<ThemeMode>(profile.themeMode);
+  const [gender, setGender] = useState<Gender>(profile.gender);
 
   async function chooseLook(next: Look) {
     if (next === look) return;
@@ -89,6 +93,12 @@ export default function SettingsPage() {
       router.refresh();
       setPendingLook(null);
     }
+  }
+
+  async function chooseGender(next: Gender) {
+    setGender(next);
+    await api.updateSettings({ gender: next }).catch(() => {});
+    router.refresh();
   }
 
   async function chooseTheme(mode: ThemeMode) {
@@ -181,6 +191,18 @@ export default function SettingsPage() {
               );
             })}
           </div>
+        </Section>
+
+        <Section
+          title="Clothing"
+          description="Men hides dresses, skirts and jumpsuits."
+        >
+          <Segmented<Gender>
+            label="Clothing categories"
+            value={gender}
+            onChange={chooseGender}
+            options={GENDERS.map((g) => ({ value: g, label: GENDER_LABELS[g] }))}
+          />
         </Section>
 
         <Section title="Theme">

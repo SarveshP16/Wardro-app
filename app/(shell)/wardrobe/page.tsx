@@ -13,6 +13,7 @@ import { SpectrumStrip } from "@/components/wardrobe/SpectrumStrip";
 import { WardrobeGrid } from "@/components/wardrobe/WardrobeGrid";
 import { api } from "@/lib/api";
 import { compareByColor } from "@/lib/colorNames";
+import { CATEGORY_PLURALS } from "@/lib/labels";
 import {
   CLOTHING_CATEGORIES,
   type ClothingCategory,
@@ -21,13 +22,6 @@ import {
 
 type Filter = ClothingCategory | "all";
 type Sort = "newest" | "colour";
-
-const PLURAL_LABELS: Record<ClothingCategory, string> = {
-  top: "Tops",
-  bottom: "Bottoms",
-  outerwear: "Outerwear",
-  shoes: "Shoes",
-};
 
 /// The Wardrobe tab. In Tailor's navy, "All" is laid out as one rail per
 /// category; Colour story opens with a spectrum of everything you own and
@@ -47,19 +41,19 @@ export default function WardrobePage() {
   }, []);
 
   const counts = useMemo(() => {
-    const result: Record<ClothingCategory, number> = {
-      top: 0,
-      bottom: 0,
-      outerwear: 0,
-      shoes: 0,
-    };
-    for (const item of items ?? []) result[item.category] += 1;
+    // A piece counts in every category it's in.
+    const result = Object.fromEntries(
+      CLOTHING_CATEGORIES.map((c) => [c, 0]),
+    ) as Record<ClothingCategory, number>;
+    for (const item of items ?? []) {
+      for (const category of item.categories) result[category] += 1;
+    }
     return result;
   }, [items]);
 
   const visible = useMemo(() => {
     const filtered = (items ?? []).filter(
-      (item) => filter === "all" || item.category === filter,
+      (item) => filter === "all" || item.categories.includes(filter),
     );
     // The API already returns newest first.
     return sort === "colour"
@@ -109,9 +103,10 @@ export default function WardrobePage() {
             className="mt-2"
             items={[
               { value: "all", label: "All", count: total },
-              ...CLOTHING_CATEGORIES.map((c) => ({
+              // Only categories with pieces in them (plus the open one).
+              ...CLOTHING_CATEGORIES.filter((c) => counts[c] > 0 || c === filter).map((c) => ({
                 value: c,
-                label: PLURAL_LABELS[c],
+                label: CATEGORY_PLURALS[c],
                 count: counts[c],
               })),
             ]}
@@ -147,7 +142,7 @@ export default function WardrobePage() {
         />
       ) : visible.length === 0 ? (
         <EmptyState
-          title={`No ${PLURAL_LABELS[filter as ClothingCategory].toLowerCase()} yet`}
+          title={`No ${CATEGORY_PLURALS[filter as ClothingCategory].toLowerCase()} yet`}
           action={
             <Link href="/wardrobe/add" className={buttonClasses("secondary")}>
               <Plus size={16} /> Add pieces
@@ -157,16 +152,16 @@ export default function WardrobePage() {
       ) : showRails ? (
         <div className="flex flex-col gap-2 pt-2">
           {CLOTHING_CATEGORIES.filter((c) => counts[c] > 0).map((category) => (
-            <section key={category} aria-label={PLURAL_LABELS[category]}>
+            <section key={category} aria-label={CATEGORY_PLURALS[category]}>
               <button
                 type="button"
                 onClick={() => setFilter(category)}
                 className="flex w-full items-baseline justify-between px-5 pb-2 pt-4 text-left"
               >
-                <h2 className="display text-[13px]">{PLURAL_LABELS[category]}</h2>
+                <h2 className="display text-[13px]">{CATEGORY_PLURALS[category]}</h2>
                 <span className="text-xs text-muted">{counts[category]}</span>
               </button>
-              <WardrobeGrid items={visible.filter((i) => i.category === category)} />
+              <WardrobeGrid items={visible.filter((i) => i.categories.includes(category))} />
             </section>
           ))}
         </div>

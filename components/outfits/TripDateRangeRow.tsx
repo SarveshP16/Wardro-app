@@ -1,6 +1,6 @@
 "use client";
 
-import { tripDateRange } from "@/lib/packingList";
+import { localToday, tripDateRange } from "@/lib/packingList";
 
 /// Packing List's start/end date pickers, with a live day count and a cap
 /// at maxDays (see MAX_TRIP_DAYS) so a single AI Stylist call -- one
@@ -17,7 +17,7 @@ export function TripDateRangeRow({
   maxDays: number;
   onChange: (startDate: string, endDate: string) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const dayCount = tripDateRange(startDate, endDate).length;
   const tooLong = dayCount > maxDays;
 

@@ -1,10 +1,13 @@
 import sharp from "sharp";
 
+import { sortCategories } from "./categories";
 import {
   CLOTHING_CATEGORIES,
+  GENDERS,
   OUTFIT_STYLES,
   SEASONS,
   type ClothingCategory,
+  type Gender,
   type OutfitStyle,
   type Season,
 } from "./types";
@@ -24,6 +27,18 @@ export const MAX_EXCLUDED_COMBOS = 200;
 
 export function isCategory(value: unknown): value is ClothingCategory {
   return CLOTHING_CATEGORIES.includes(value as ClothingCategory);
+}
+
+/// One or more known categories, deduplicated into canonical order --
+/// or null if the value isn't a usable list.
+export function cleanCategories(value: unknown): ClothingCategory[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  if (!value.every(isCategory)) return null;
+  return sortCategories(value);
+}
+
+export function isGender(value: unknown): value is Gender {
+  return GENDERS.includes(value as Gender);
 }
 
 export function isStyle(value: unknown): value is OutfitStyle {

@@ -9,8 +9,8 @@ import type { GeneratedOutfit, SavedOutfit } from "@/lib/types";
 
 type SavedOutfitRow = {
   id: string;
-  style: "CASUAL" | "SMART_CASUAL" | "FORMAL" | "EVENING";
-  season: "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | null;
+  style: Parameters<typeof styleFromDb>[0];
+  season: Parameters<typeof seasonFromDb>[0];
   title: string;
   rationale: string;
   createdAt: Date;

@@ -3,25 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteImage } from "@/lib/imageStore";
 import { requireProfile } from "@/lib/profile";
-import { cleanItemName, isCategory } from "@/lib/validate";
-import { categoryFromDb, categoryToDb } from "@/lib/labels";
-import type { ClothingItem } from "@/lib/types";
-
-function toItem(row: {
-  id: string;
-  category: "TOP" | "BOTTOM" | "OUTERWEAR" | "SHOES";
-  name: string | null;
-  dominantColor: number | null;
-  createdAt: Date;
-}): ClothingItem {
-  return {
-    id: row.id,
-    category: categoryFromDb(row.category),
-    name: row.name,
-    dominantColor: row.dominantColor,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
+import { cleanCategories, cleanItemName } from "@/lib/validate";
+import { itemFromRow } from "@/lib/items";
+import { categoryToDb } from "@/lib/labels";
 
 export async function GET(
   _request: NextRequest,
@@ -36,7 +20,7 @@ export async function GET(
   if (!row) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  return NextResponse.json({ item: toItem(row) });
+  return NextResponse.json({ item: itemFromRow(row) });
 }
 
 export async function PATCH(
@@ -47,9 +31,12 @@ export async function PATCH(
   if (auth instanceof NextResponse) return auth;
   const { id } = await params;
   const body = await request.json();
-  const { name, category } = body as { name?: unknown; category?: unknown };
+  const { name, categories } = body as { name?: unknown; categories?: unknown };
 
-  const data: { name?: string | null; category?: ReturnType<typeof categoryToDb> } = {};
+  const data: {
+    name?: string | null;
+    categories?: ReturnType<typeof categoryToDb>[];
+  } = {};
   if (typeof name !== "undefined") {
     const cleanName = cleanItemName(name);
     if (cleanName === undefined) {
@@ -57,11 +44,12 @@ export async function PATCH(
     }
     data.name = cleanName;
   }
-  if (typeof category !== "undefined") {
-    if (!isCategory(category)) {
-      return NextResponse.json({ error: "Unknown category." }, { status: 400 });
+  if (typeof categories !== "undefined") {
+    const cleanCats = cleanCategories(categories);
+    if (!cleanCats) {
+      return NextResponse.json({ error: "Choose a category." }, { status: 400 });
     }
-    data.category = categoryToDb(category);
+    data.categories = cleanCats.map(categoryToDb);
   }
 
   // updateMany so the profile filter applies -- an item from another
@@ -74,7 +62,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const row = await prisma.clothingItem.findUniqueOrThrow({ where: { id } });
-  return NextResponse.json({ item: toItem(row) });
+  return NextResponse.json({ item: itemFromRow(row) });
 }
 
 export async function DELETE(

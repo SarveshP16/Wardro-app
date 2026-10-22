@@ -8,7 +8,26 @@ it's built for personal use rather than public releases.
 
 ## [Unreleased]
 
+### Added
+- **Several categories per piece** — e.g. an overshirt as both a top and
+  outerwear; outfits use it either way, never twice in one outfit.
+- **Women's categories:** Dresses, Skirts and Jumpsuits. A dress or
+  jumpsuit stands in for a top + bottom (Quick Match, AI Stylist, and the
+  flat-lay, which lays it out as one tall piece); a skirt is a bottom.
+  New **Settings → Clothing** (Show all / Women / Men): Men hides the
+  women's categories in pickers, and the AI Stylist is told whose
+  wardrobe it is.
+- **More occasions:** Work, Interview, Date night, Party, Wedding guest,
+  Active, Travel, Beach and Lounge, each described to the AI Stylist.
+- **Packing List outfit count:** plan fewer outfits than days and re-wear
+  them. Results show each outfit once with the days it's worn, plus a
+  "Pack N pieces" list of everything to bring.
+
 ### Fixed
+- **Packing List dates were a day off** east of UTC (e.g. in Australia a
+  3–5 Nov trip was planned and forecast as 2–4 Nov), and around
+  daylight-saving changes elsewhere; "today" also used UTC's date.
+- Quick Match no longer ranks a dress or jumpsuit worn on its own last.
 - **Android app: content no longer slides under the status bar.** Making
   Wardro full-screen on iPhone (`viewport-fit=cover`) also made the
   Android app edge-to-edge, so the header and Add button sat behind the

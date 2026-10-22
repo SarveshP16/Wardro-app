@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { generateAiOutfits } from "@/lib/anthropic";
-import { categoryFromDb } from "@/lib/labels";
+import { itemFromRow } from "@/lib/items";
 import { loadSeenOutfits, recordSuggestions } from "@/lib/outfitHistory";
 import { requireProfile } from "@/lib/profile";
 import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
@@ -48,13 +48,7 @@ export async function POST(request: NextRequest) {
   const rows = await prisma.clothingItem.findMany({
     where: { profileId: auth.id },
   });
-  const items: ClothingItem[] = rows.map((row) => ({
-    id: row.id,
-    category: categoryFromDb(row.category),
-    name: row.name,
-    dominantColor: row.dominantColor,
-    createdAt: row.createdAt.toISOString(),
-  }));
+  const items: ClothingItem[] = rows.map(itemFromRow);
 
   const { promptCombos, alreadySeen } = await loadSeenOutfits(
     auth.id,
@@ -66,6 +60,7 @@ export async function POST(request: NextRequest) {
     const outfits = await generateAiOutfits({
       items,
       style,
+      gender: auth.gender,
       includeOuterwear,
       includeShoes,
       weather: weather ?? null,

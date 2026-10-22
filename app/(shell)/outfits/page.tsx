@@ -13,7 +13,7 @@ import { CountStepper } from "@/components/outfits/CountStepper";
 import { OutfitCategoryToggles } from "@/components/outfits/OutfitCategoryToggles";
 import { OutfitGeneratingView } from "@/components/outfits/OutfitGeneratingView";
 import { OutfitResultCard } from "@/components/outfits/OutfitResultCard";
-import { PackingDayCard } from "@/components/outfits/PackingDayCard";
+import { PackingPlan } from "@/components/outfits/PackingPlan";
 import { SavedOutfitCard } from "@/components/outfits/SavedOutfitCard";
 import { TripDateRangeRow } from "@/components/outfits/TripDateRangeRow";
 import { TripWeatherRow } from "@/components/outfits/TripWeatherRow";
@@ -22,7 +22,7 @@ import { api } from "@/lib/api";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
 import { SEASON_LABELS, STYLE_LABELS } from "@/lib/labels";
 import { outfitSignature } from "@/lib/outfitSignature";
-import { MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
+import { localToday, MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
 import { SEASON_ICONS } from "@/lib/seasonIcons";
 import {
   fetchCurrentWeather,
@@ -88,11 +88,13 @@ export default function OutfitsPage() {
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
   // Packing List only -- see TripDateRangeRow/TripWeatherRow below.
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => localToday(), []);
   const [tripStart, setTripStart] = useState(today);
   const [tripEnd, setTripEnd] = useState(today);
   const [tripWeatherEnabled, setTripWeatherEnabled] = useState(true);
   const [tripDestination, setTripDestination] = useState<string | null>(null);
+  // Distinct outfits for the trip (re-worn); null = one per day.
+  const [tripOutfits, setTripOutfits] = useState<number | null>(null);
   const [packingResult, setPackingResult] = useState<PackingDayOutfit[] | null>(null);
 
   const [generating, setGenerating] = useState(false);
@@ -193,6 +195,7 @@ export default function OutfitsPage() {
       includeShoes,
       season,
       days,
+      outfitCount: Math.min(tripOutfits ?? days.length, days.length),
       excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
     });
     setPackingResult(result);
@@ -268,6 +271,7 @@ export default function OutfitsPage() {
   const noItems = items !== null && items.length === 0;
   const tripDayCount = mode === "packing" ? tripDateRange(tripStart, tripEnd).length : 0;
   const tripInvalid = mode === "packing" && (tripDayCount === 0 || tripDayCount > MAX_TRIP_DAYS);
+  const tripOutfitCount = Math.max(1, Math.min(tripOutfits ?? tripDayCount, tripDayCount));
   const hasResults =
     (mode === "packing" ? packingResult?.length : generatedOutfits?.length) ?? 0;
 
@@ -279,6 +283,9 @@ export default function OutfitsPage() {
       ? `${Math.round(weather.temperatureCelsius)}°C`
       : null,
     mode === "packing" ? `${tripDayCount} day${tripDayCount === 1 ? "" : "s"}` : null,
+    mode === "packing" && tripOutfitCount < tripDayCount
+      ? `${tripOutfitCount} outfit${tripOutfitCount === 1 ? "" : "s"}`
+      : null,
   ].filter((part): part is string => part !== null);
 
   return (
@@ -359,6 +366,19 @@ export default function OutfitsPage() {
                         setTripEnd(end);
                       }}
                     />
+                    {tripDayCount > 1 && !tripInvalid ? (
+                      <CountStepper
+                        label="Outfits"
+                        hint={
+                          tripOutfitCount < tripDayCount
+                            ? `${tripOutfitCount} for ${tripDayCount} days, re-worn — pack lighter`
+                            : "One for each day"
+                        }
+                        value={tripOutfitCount}
+                        onChange={setTripOutfits}
+                        max={tripDayCount}
+                      />
+                    ) : null}
                     <TripWeatherRow
                       enabled={tripWeatherEnabled}
                       destination={tripDestination}
@@ -422,17 +442,12 @@ export default function OutfitsPage() {
           {generating ? (
             <OutfitGeneratingView />
           ) : mode === "packing" && packingResult && packingResult.length > 0 ? (
-            <ResultGrid>
-              {packingResult.map((day) => (
-                <PackingDayCard
-                  key={day.date}
-                  day={day}
-                  itemsById={itemsById}
-                  saved={savedSignatures.has(outfitSignature(day.outfit.itemIds))}
-                  onSave={() => handleSaveOutfit(day.outfit)}
-                />
-              ))}
-            </ResultGrid>
+            <PackingPlan
+              days={packingResult}
+              itemsById={itemsById}
+              savedSignatures={savedSignatures}
+              onSave={handleSaveOutfit}
+            />
           ) : mode !== "packing" && generatedOutfits && generatedOutfits.length > 0 ? (
             <ResultGrid>
               {generatedOutfits.map((outfit, index) => (

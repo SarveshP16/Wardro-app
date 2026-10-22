@@ -58,7 +58,7 @@ export default function AddItemPage() {
   }
 
   async function handleSave(data: {
-    category: ClothingCategory;
+    categories: ClothingCategory[];
     name: string | null;
     cutout: string;
   }) {
@@ -66,7 +66,7 @@ export default function AddItemPage() {
     setSaving(true);
     try {
       await api.createItem({
-        category: data.category,
+        categories: data.categories,
         name: data.name,
         dominantColor: current.dominantColor,
         cutout: data.cutout,

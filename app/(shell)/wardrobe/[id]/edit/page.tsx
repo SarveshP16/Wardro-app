@@ -8,6 +8,8 @@ import { SubpageHeader } from "@/components/SubpageHeader";
 import { Button } from "@/components/ui/Button";
 import { CategorySelector } from "@/components/wardrobe/CategorySelector";
 import { api } from "@/lib/api";
+import { primaryCategory } from "@/lib/categories";
+import { CATEGORY_LABELS } from "@/lib/labels";
 import type { ClothingCategory, ClothingItem } from "@/lib/types";
 
 /// Change a piece's category or name.
@@ -15,7 +17,7 @@ export default function EditItemPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [item, setItem] = useState<ClothingItem | null | undefined>(undefined);
-  const [category, setCategory] = useState<ClothingCategory>("top");
+  const [categories, setCategories] = useState<ClothingCategory[]>(["top"]);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function EditItemPage() {
       const found = items.find((i) => i.id === id) ?? null;
       setItem(found);
       if (found) {
-        setCategory(found.category);
+        setCategories(found.categories);
         setName(found.name ?? "");
       }
     });
@@ -35,7 +37,7 @@ export default function EditItemPage() {
     setSaving(true);
     setError(null);
     try {
-      await api.updateItem(id, { category, name: name.trim() || null });
+      await api.updateItem(id, { categories, name: name.trim() || null });
       router.push(`/wardrobe/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save changes.");
@@ -62,14 +64,14 @@ export default function EditItemPage() {
       <div className="flex flex-col gap-6 px-5 pt-2 md:max-w-lg">
         <ItemImage
           id={item.id}
-          alt={item.name ?? item.category}
+          alt={item.name ?? CATEGORY_LABELS[primaryCategory(item)]}
           padding="p-4"
           className="aspect-square w-40 rounded-card"
         />
 
         <div className="flex flex-col gap-2">
           <p className="text-[13px] font-semibold">Category</p>
-          <CategorySelector value={category} onChange={setCategory} />
+          <CategorySelector value={categories} onChange={setCategories} />
         </div>
 
         <div className="flex flex-col gap-2">

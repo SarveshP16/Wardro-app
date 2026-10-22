@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { generateAiPackingList } from "@/lib/anthropic";
-import { categoryFromDb } from "@/lib/labels";
+import { itemFromRow } from "@/lib/items";
 import { requireProfile } from "@/lib/profile";
 import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
 import { MAX_TRIP_DAYS } from "@/lib/packingList";
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     includeShoes = true,
     season,
     days,
+    outfitCount,
     excludeCombos,
   } = body as {
     style?: OutfitStyle;
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     includeShoes?: boolean;
     season?: Season | null;
     days?: PackingDayInput[];
+    outfitCount?: number;
     excludeCombos?: string[][];
   };
 
@@ -59,22 +61,21 @@ export async function POST(request: NextRequest) {
   const rows = await prisma.clothingItem.findMany({
     where: { profileId: auth.id },
   });
-  const items: ClothingItem[] = rows.map((row) => ({
-    id: row.id,
-    category: categoryFromDb(row.category),
-    name: row.name,
-    dominantColor: row.dominantColor,
-    createdAt: row.createdAt.toISOString(),
-  }));
+  const items: ClothingItem[] = rows.map(itemFromRow);
 
   try {
     const packingDays = await generateAiPackingList({
       items,
       style,
+      gender: auth.gender,
       includeOuterwear,
       includeShoes,
       season: season ?? null,
       days,
+      outfitCount:
+        typeof outfitCount === "number" && Number.isFinite(outfitCount)
+          ? outfitCount
+          : undefined,
       excludeCombos: cleanExcludeCombos(excludeCombos),
     });
     return NextResponse.json({ days: packingDays });

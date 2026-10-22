@@ -19,6 +19,9 @@ enum Category {
   BOTTOM
   OUTERWEAR
   SHOES
+  DRESS
+  SKIRT
+  JUMPSUIT
 }
 
 enum Style {
@@ -26,6 +29,15 @@ enum Style {
   SMART_CASUAL
   FORMAL
   EVENING
+  WORK
+  INTERVIEW
+  DATE_NIGHT
+  PARTY
+  WEDDING_GUEST
+  ACTIVE
+  TRAVEL
+  BEACH
+  LOUNGE
 }
 
 enum Season {
@@ -49,6 +61,9 @@ model Profile {
   // Visual style: 'navy' (Tailor's navy) | 'colour' (Colour story) --
   // see LOOKS in lib/types.ts.
   look      String   @default("navy")
+  // Which clothing categories to offer: 'all' | 'women' | 'men' -- 'men'
+  // hides dresses, skirts and jumpsuits (see lib/categories.ts).
+  gender    String   @default("all")
   createdAt DateTime @default(now())
 
   items       ClothingItem[]
@@ -59,7 +74,10 @@ model Profile {
 model ClothingItem {
   id            String   @id @default(uuid())
   profileId     String
-  category      Category
+  // One or more, stored in canonical order (see lib/categories.ts) -- e.g.
+  // an overshirt can be both a top and outerwear. The first is the piece's
+  // main category (icon, default name).
+  categories    Category[]
   name          String?
   // Packed 0xRRGGBB, or null for items whose dominant color hasn't been
   // computed.
@@ -69,7 +87,7 @@ model ClothingItem {
   profile     Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
   outfitLinks SavedOutfitItem[]
 
-  @@index([profileId, category])
+  @@index([profileId])
 }
 
 model SavedOutfit {

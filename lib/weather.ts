@@ -1,3 +1,4 @@
+import { addDays, localToday } from "./packingList";
 import { DailyForecast, WeatherError, WeatherSnapshot } from "./types";
 
 /// Live weather and trip forecasts, backed by
@@ -236,10 +237,6 @@ interface TripForecast {
   days: DailyForecast[];
 }
 
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 /// Shared by both fetchTripForecastForCurrentLocation and
 /// fetchTripForecastForLocation below, same split as fetchWeatherAt.
 async function fetchDailyForecast(
@@ -248,8 +245,9 @@ async function fetchDailyForecast(
   startDate: string,
   endDate: string,
 ): Promise<DailyForecast[]> {
-  const today = isoDate(new Date());
-  const maxDate = isoDate(new Date(Date.now() + MAX_FORECAST_DAYS_AHEAD * 86400000));
+  // The device's own date, like the trip's (see lib/packingList.ts).
+  const today = localToday();
+  const maxDate = addDays(today, MAX_FORECAST_DAYS_AHEAD);
   if (startDate > maxDate) return []; // whole trip is beyond the horizon
 
   const url = new URL(FORECAST_ENDPOINT);

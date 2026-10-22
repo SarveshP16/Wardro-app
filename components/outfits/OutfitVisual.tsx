@@ -3,9 +3,10 @@
 import { useLook } from "@/app/look-context";
 import { itemImageSrc } from "@/components/ItemImage";
 import { toHex } from "@/lib/color";
+import { assignRoles, primaryCategory, type OutfitRole } from "@/lib/categories";
 import { colorStoryCaption } from "@/lib/colorNames";
 import { CATEGORY_LABELS } from "@/lib/labels";
-import type { ClothingCategory, ClothingItem } from "@/lib/types";
+import type { ClothingItem } from "@/lib/types";
 
 /// The picture of an outfit, drawn per look:
 /// - Tailor's navy: a stylist's flat-lay -- every piece on one board,
@@ -20,7 +21,17 @@ export function OutfitVisual({
   itemsById: Map<string, ClothingItem>;
 }) {
   const look = useLook();
-  const pieces = itemIds.map((id) => ({ id, item: itemsById.get(id) ?? null }));
+  const known = itemIds.flatMap((id) => {
+    const item = itemsById.get(id);
+    return item ? [item] : [];
+  });
+  // Which part each piece plays (a piece can be in several categories).
+  const roles = assignRoles(known);
+  const pieces = itemIds.map((id) => ({
+    id,
+    item: itemsById.get(id) ?? null,
+    role: roles.get(id) ?? null,
+  }));
   return look === "colour" ? (
     <ColourLineup pieces={pieces} />
   ) : (
@@ -28,10 +39,10 @@ export function OutfitVisual({
   );
 }
 
-type Piece = { id: string; item: ClothingItem | null };
+type Piece = { id: string; item: ClothingItem | null; role: OutfitRole | null };
 
 function pieceLabel(piece: Piece): string {
-  return piece.item?.name ?? (piece.item ? CATEGORY_LABELS[piece.item.category] : "Item");
+  return piece.item?.name ?? (piece.item ? CATEGORY_LABELS[primaryCategory(piece.item)] : "Item");
 }
 
 /* ---------------------------- Flat-lay ---------------------------- */
@@ -39,16 +50,16 @@ function pieceLabel(piece: Piece): string {
 /// Position of one piece on the board, in % of the board's size.
 type Slot = { left: number; top: number; width: number; height: number; z: number };
 
-/// Where each category sits, depending on which others are present: the
-/// top and outerwear share the upper half (side by side when both are
-/// there), the bottom hangs below the top, and shoes go to the lower
-/// right corner.
-function slotFor(
-  category: ClothingCategory,
-  hasOuter: boolean,
-  hasShoes: boolean,
-): Slot {
-  switch (category) {
+/// Where each role sits, depending on which others are present: the top
+/// and outerwear share the upper half (side by side when both are there),
+/// the bottom hangs below the top, a dress or jumpsuit takes the top and
+/// bottom's place as one tall piece, and shoes go to the lower right.
+function slotFor(role: OutfitRole, hasOuter: boolean, hasShoes: boolean): Slot {
+  switch (role) {
+    case "onepiece":
+      return hasOuter
+        ? { left: 40, top: 4, width: 56, height: 88, z: 2 }
+        : { left: hasShoes ? 14 : 20, top: 3, width: hasShoes ? 56 : 60, height: 92, z: 2 };
     case "outerwear":
       return { left: 3, top: 6, width: 50, height: 47, z: 1 };
     case "top":
@@ -67,13 +78,14 @@ function slotFor(
 }
 
 function FlatLay({ pieces }: { pieces: Piece[] }) {
-  const categories = pieces.map((p) => p.item?.category);
-  // The composed layout needs one known piece per category; anything
-  // else (a deleted item, two tops) falls back to a simple grid.
+  const roles = pieces.map((p) => p.role);
+  // The composed layout needs every piece known and in its own role, and
+  // either a one-piece or top/bottom (not both); anything else (a deleted
+  // item, two tops) falls back to a simple grid.
   const composable =
     pieces.length > 0 &&
-    categories.every((c) => c !== undefined) &&
-    new Set(categories).size === categories.length;
+    roles.every((r) => r !== null) &&
+    !(roles.includes("onepiece") && (roles.includes("top") || roles.includes("bottom")));
 
   if (!composable) {
     return (
@@ -92,12 +104,12 @@ function FlatLay({ pieces }: { pieces: Piece[] }) {
     );
   }
 
-  const hasOuter = categories.includes("outerwear");
-  const hasShoes = categories.includes("shoes");
+  const hasOuter = roles.includes("outerwear");
+  const hasShoes = roles.includes("shoes");
   return (
     <div className="relative aspect-[4/4.3] w-full overflow-hidden rounded-card bg-board">
       {pieces.map((piece) => {
-        const slot = slotFor(piece.item!.category, hasOuter, hasShoes);
+        const slot = slotFor(piece.role!, hasOuter, hasShoes);
         return (
           // eslint-disable-next-line @next/next/no-img-element -- dynamic, server-routed image
           <img
@@ -123,17 +135,19 @@ function FlatLay({ pieces }: { pieces: Piece[] }) {
 
 /// Relative width of each piece's colour in the band -- roughly how much
 /// of the outfit you see of it.
-const BAND_WEIGHT: Record<ClothingCategory, number> = {
+const BAND_WEIGHT: Record<OutfitRole, number> = {
   top: 3,
   outerwear: 3,
   bottom: 3,
+  onepiece: 6,
   shoes: 1,
 };
 
 /// Lineup order: outer layer first, shoes last.
-const LINEUP_ORDER: Record<ClothingCategory, number> = {
+const LINEUP_ORDER: Record<OutfitRole, number> = {
   outerwear: 0,
   top: 1,
+  onepiece: 1,
   bottom: 2,
   shoes: 3,
 };
@@ -141,11 +155,10 @@ const LINEUP_ORDER: Record<ClothingCategory, number> = {
 function ColourLineup({ pieces }: { pieces: Piece[] }) {
   const ordered = [...pieces].sort(
     (a, b) =>
-      (a.item ? LINEUP_ORDER[a.item.category] : 9) -
-      (b.item ? LINEUP_ORDER[b.item.category] : 9),
+      (a.role ? LINEUP_ORDER[a.role] : 9) - (b.role ? LINEUP_ORDER[b.role] : 9),
   );
   const colored = ordered.filter(
-    (p): p is { id: string; item: ClothingItem & { dominantColor: number } } =>
+    (p): p is Piece & { item: ClothingItem & { dominantColor: number } } =>
       p.item?.dominantColor != null,
   );
   const columns = ordered.length === 4 ? 2 : Math.min(ordered.length, 3);
@@ -177,7 +190,7 @@ function ColourLineup({ pieces }: { pieces: Piece[] }) {
               <span
                 key={piece.id}
                 style={{
-                  flex: BAND_WEIGHT[piece.item.category],
+                  flex: piece.role ? BAND_WEIGHT[piece.role] : 2,
                   backgroundColor: toHex(piece.item.dominantColor),
                 }}
               />

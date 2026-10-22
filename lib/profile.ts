@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "./db";
 import {
+  GENDERS,
   LOOKS,
   MAX_PROFILE_NAME_LENGTH,
   PROFILE_COLORS,
   THEME_MODES,
+  type Gender,
   type Look,
   type Profile,
   type ProfileColor,
@@ -30,6 +32,7 @@ type ProfileRow = {
   color: string;
   themeMode: string;
   look: string;
+  gender: string;
 };
 
 export function toProfile(row: ProfileRow): Profile {
@@ -41,6 +44,7 @@ export function toProfile(row: ProfileRow): Profile {
       ? row.themeMode
       : "system") as ThemeMode,
     look: (LOOKS.includes(row.look as Look) ? row.look : "navy") as Look,
+    gender: (GENDERS.includes(row.gender as Gender) ? row.gender : "all") as Gender,
   };
 }
 

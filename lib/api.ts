@@ -1,6 +1,7 @@
 import type {
   ClothingCategory,
   ClothingItem,
+  Gender,
   GeneratedOutfit,
   Look,
   OutfitStyle,
@@ -70,7 +71,7 @@ export const api = {
     ),
 
   createItem: (data: {
-    category: ClothingCategory;
+    categories: ClothingCategory[];
     name?: string | null;
     dominantColor?: number | null;
     cutout: string;
@@ -82,7 +83,7 @@ export const api = {
 
   updateItem: (
     id: string,
-    data: { name?: string | null; category?: ClothingCategory },
+    data: { name?: string | null; categories?: ClothingCategory[] },
   ) =>
     request<{ item: ClothingItem }>(`/api/wardrobe/items/${id}`, {
       method: "PATCH",
@@ -132,6 +133,8 @@ export const api = {
     includeShoes: boolean;
     season?: Season | null;
     days: PackingDayInput[];
+    /// Distinct outfits for the whole trip (re-worn); defaults to one a day.
+    outfitCount?: number;
     excludeCombos?: string[][];
   }) =>
     request<{ days: PackingDayOutfit[] }>("/api/outfits/generate/packing", {
@@ -160,8 +163,12 @@ export const api = {
     }),
 
   /// Saves the active profile's appearance settings.
-  updateSettings: (data: { themeMode?: ThemeMode; look?: Look }) =>
-    request<{ themeMode: ThemeMode; look: Look }>("/api/settings", {
+  updateSettings: (data: {
+    themeMode?: ThemeMode;
+    look?: Look;
+    gender?: Gender;
+  }) =>
+    request<{ themeMode: ThemeMode; look: Look; gender: Gender }>("/api/settings", {
       method: "PATCH",
       body: JSON.stringify(data),
     }),

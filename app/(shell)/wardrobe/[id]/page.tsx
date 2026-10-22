@@ -10,6 +10,7 @@ import { ItemImage } from "@/components/ItemImage";
 import { SubpageHeader } from "@/components/SubpageHeader";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/api";
+import { primaryCategory } from "@/lib/categories";
 import { CATEGORY_ICONS } from "@/lib/categoryIcons";
 import { toHex } from "@/lib/color";
 import { colorName } from "@/lib/colorNames";
@@ -55,8 +56,9 @@ export default function ItemDetailPage() {
     );
   }
 
-  const Icon = CATEGORY_ICONS[item.category];
-  const title = item.name ?? CATEGORY_LABELS[item.category];
+  const main = primaryCategory(item);
+  const Icon = CATEGORY_ICONS[main];
+  const title = item.name ?? CATEGORY_LABELS[main];
 
   return (
     <div className="flex flex-1 flex-col pb-10">
@@ -86,9 +88,12 @@ export default function ItemDetailPage() {
         <div className="flex flex-1 flex-col">
           <dl className="divide-y divide-line border-y border-line text-sm">
             <div className="flex items-center justify-between py-3">
-              <dt className="text-muted">Category</dt>
-              <dd className="flex items-center gap-2 font-medium">
-                <Icon size={15} /> {CATEGORY_LABELS[item.category]}
+              <dt className="text-muted">
+                {item.categories.length > 1 ? "Categories" : "Category"}
+              </dt>
+              <dd className="flex items-center gap-2 text-right font-medium">
+                <Icon size={15} className="shrink-0" />
+                {item.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
               </dd>
             </div>
             {item.dominantColor !== null ? (

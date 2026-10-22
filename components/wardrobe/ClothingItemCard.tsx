@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { useLook } from "@/app/look-context";
 import { ItemImage } from "@/components/ItemImage";
+import { primaryCategory } from "@/lib/categories";
 import { toHex } from "@/lib/color";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import type { ClothingItem } from "@/lib/types";
@@ -13,7 +14,7 @@ import type { ClothingItem } from "@/lib/types";
 /// (Tailor's navy) or a band along the bottom edge (Colour story).
 export function ClothingItemCard({ item }: { item: ClothingItem }) {
   const look = useLook();
-  const label = item.name ?? CATEGORY_LABELS[item.category];
+  const label = item.name ?? CATEGORY_LABELS[primaryCategory(item)];
   const color = item.dominantColor !== null ? toHex(item.dominantColor) : null;
 
   return (
