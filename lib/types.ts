@@ -69,6 +69,14 @@ export type Gender = "all" | "women" | "men";
 
 export const GENDERS: Gender[] = ["all", "women", "men"];
 
+/// One of a piece's main colours (see lib/palette.ts).
+export interface PaletteColor {
+  /// Packed 0xRRGGBB.
+  color: number;
+  /// Share of the piece, 0..1; a palette's weights sum to ~1.
+  weight: number;
+}
+
 export interface ClothingItem {
   id: string;
   /// One or more, in canonical order (CLOTHING_CATEGORIES); the first is
@@ -78,6 +86,9 @@ export interface ClothingItem {
   /// Packed 0xRRGGBB average color of the cutout's opaque pixels, or null
   /// for items saved before this existed. See lib/dominantColor.ts.
   dominantColor: number | null;
+  /// Up to 3 main colours, heaviest first -- null until computed (see
+  /// lib/palette.ts). Prints keep their colours here, unlike the average.
+  palette: PaletteColor[] | null;
   createdAt: string;
 }
 

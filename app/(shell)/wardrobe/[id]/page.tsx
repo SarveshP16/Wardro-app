@@ -57,6 +57,10 @@ export default function ItemDetailPage() {
   }
 
   const main = primaryCategory(item);
+  // Its main colours (see lib/palette.ts), else the single average.
+  const colours =
+    item.palette ??
+    (item.dominantColor !== null ? [{ color: item.dominantColor, weight: 1 }] : []);
   const Icon = CATEGORY_ICONS[main];
   const title = item.name ?? CATEGORY_LABELS[main];
 
@@ -96,15 +100,26 @@ export default function ItemDetailPage() {
                 {item.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
               </dd>
             </div>
-            {item.dominantColor !== null ? (
-              <div className="flex items-center justify-between py-3">
-                <dt className="text-muted">Colour</dt>
-                <dd className="flex items-center gap-2 font-medium capitalize">
-                  <span
-                    className="h-4 w-4 rounded-full ring-1 ring-inset ring-black/10"
-                    style={{ backgroundColor: toHex(item.dominantColor) }}
-                  />
-                  {colorName(item.dominantColor)}
+            {colours.length > 0 ? (
+              <div className="flex items-center justify-between gap-4 py-3">
+                <dt className="text-muted">
+                  {colours.length > 1 ? "Colours" : "Colour"}
+                </dt>
+                <dd className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 font-medium">
+                  {colours.map(({ color, weight }) => (
+                    <span key={color} className="flex items-center gap-1.5">
+                      <span
+                        className="h-4 w-4 rounded-full ring-1 ring-inset ring-black/10"
+                        style={{ backgroundColor: toHex(color) }}
+                      />
+                      <span className="capitalize">{colorName(color)}</span>
+                      {colours.length > 1 ? (
+                        <span className="text-xs font-normal text-muted">
+                          {Math.round(weight * 100)}%
+                        </span>
+                      ) : null}
+                    </span>
+                  ))}
                 </dd>
               </div>
             ) : null}

@@ -82,6 +82,11 @@ model ClothingItem {
   // Packed 0xRRGGBB, or null for items whose dominant color hasn't been
   // computed.
   dominantColor Int?
+  // Up to 3 main colours with their share of the piece, e.g.
+  // [{"color": 0xRRGGBB, "weight": 0.62}, ...] -- so prints keep their
+  // colours (see lib/palette.ts). Null until computed; existing pieces are
+  // filled in at server start.
+  palette       Json?
   createdAt     DateTime @default(now())
 
   profile     Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)

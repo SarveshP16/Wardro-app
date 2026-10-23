@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { saveImage } from "@/lib/imageStore";
 import { requireProfile } from "@/lib/profile";
+import { Prisma } from "@prisma/client";
+
 import { itemFromRow } from "@/lib/items";
+import { extractPalette } from "@/lib/palette";
 import { categoryToDb } from "@/lib/labels";
 import { cleanCategories, cleanItemName, decodePngCutout } from "@/lib/validate";
 
@@ -57,6 +60,8 @@ export async function POST(request: NextRequest) {
 
   const id = randomUUID();
   await saveImage(id, png);
+  // Best-effort: without a palette, Quick Match uses the average colour.
+  const palette = await extractPalette(png).catch(() => null);
 
   const row = await prisma.clothingItem.create({
     data: {
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
       categories: cleanCats.map(categoryToDb),
       name: cleanName,
       dominantColor: color,
+      palette: palette ? (palette as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
     },
   });
 

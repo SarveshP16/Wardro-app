@@ -20,6 +20,13 @@ import { TripWeatherRow } from "@/components/outfits/TripWeatherRow";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
+import {
+  COLOR_SCHEMES,
+  generateSchemeOutfits,
+  SCHEME_HINTS,
+  SCHEME_LABELS,
+  type ColorScheme,
+} from "@/lib/colorSchemes";
 import { SEASON_LABELS, STYLE_LABELS } from "@/lib/labels";
 import { outfitSignature } from "@/lib/outfitSignature";
 import { localToday, MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
@@ -78,6 +85,9 @@ export default function OutfitsPage() {
   const [includeOuterwear, setIncludeOuterwear] = useState(true);
   const [includeShoes, setIncludeShoes] = useState(true);
   const [count, setCount] = useState(3);
+  // Quick Match only: Classic is the original matcher (lib/colorMatch.ts);
+  // the others are lib/colorSchemes.ts.
+  const [scheme, setScheme] = useState<ColorScheme>("classic");
   // The options panel folds down to a one-line summary once there are
   // results, so they get the screen.
   const [optionsOpen, setOptionsOpen] = useState(true);
@@ -226,13 +236,22 @@ export default function OutfitsPage() {
                 season,
                 excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
               })
-            : generateQuickMatchOutfits({
-                items,
-                count,
-                includeOuterwear,
-                includeShoes,
-                excludeSignatures: seenSignatures,
-              });
+            : scheme === "classic"
+              ? generateQuickMatchOutfits({
+                  items,
+                  count,
+                  includeOuterwear,
+                  includeShoes,
+                  excludeSignatures: seenSignatures,
+                })
+              : generateSchemeOutfits({
+                  items,
+                  scheme,
+                  count,
+                  includeOuterwear,
+                  includeShoes,
+                  excludeSignatures: seenSignatures,
+                });
         setGeneratedOutfits(outfits);
         setSeenSignatures((prev) => {
           const next = new Set(prev);
@@ -277,6 +296,7 @@ export default function OutfitsPage() {
 
   const summary = [
     MODE_OPTIONS.find((m) => m.value === mode)!.label,
+    mode === "quickMatch" && scheme !== "classic" ? SCHEME_LABELS[scheme] : null,
     STYLE_LABELS[style],
     season ? SEASON_LABELS[season] : null,
     mode === "ai" && weatherEnabled && weather
@@ -312,6 +332,18 @@ export default function OutfitsPage() {
                 onChange={setMode}
                 options={MODE_OPTIONS}
               />
+
+              {mode === "quickMatch" ? (
+                <OptionGroup label="Colour matching">
+                  <ChoiceChips<ColorScheme>
+                    label="Colour matching"
+                    value={scheme}
+                    onChange={setScheme}
+                    options={COLOR_SCHEMES.map((s) => ({ value: s, label: SCHEME_LABELS[s] }))}
+                  />
+                  <p className="text-xs text-muted">{SCHEME_HINTS[scheme]}</p>
+                </OptionGroup>
+              ) : null}
 
               <OptionGroup label="Occasion">
                 <ChoiceChips<OutfitStyle>

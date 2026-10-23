@@ -9,6 +9,18 @@ it's built for personal use rather than public releases.
 ## [Unreleased]
 
 ### Added
+- **Quick Match colour schemes.** Alongside **Classic** (unchanged, still
+  the default): Tonal, Analogous, Complementary, Neutral + accent, Wada
+  palettes and Surprise me (one outfit per scheme). Schemes work in the
+  perceptual OKLCH colour space, calibrated on real garment photos, and
+  share outfit rules: enough light/dark contrast, at most one statement
+  piece, and prints picked up by a solid in the outfit. **Wada palettes**
+  matches whole outfits against Sanzo Wada's 3- and 4-colour
+  combinations and names the combination.
+- **Up to 3 colours per piece.** Each piece now has a small palette
+  (k-means in OKLab, sampled without blending so prints aren't averaged
+  into mush), shown on its page. New pieces get one when saved; existing
+  pieces are filled in by a background pass when the server starts.
 - **Several categories per piece** — e.g. an overshirt as both a top and
   outerwear; outfits use it either way, never twice in one outfit.
 - **Women's categories:** Dresses, Skirts and Jumpsuits. A dress or
