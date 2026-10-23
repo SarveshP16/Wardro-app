@@ -14,7 +14,7 @@
 [![iOS](https://img.shields.io/badge/iOS-Home%20Screen-000000?logo=apple&logoColor=white)](#-iphone-and-ipad)
 [![Claude](https://img.shields.io/badge/AI%20Stylist-Claude-D97757?logo=anthropic&logoColor=white)](https://www.anthropic.com)
 <br />
-[![Version](https://img.shields.io/badge/Version-2.1.0-22395C)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2.2.0-22395C)](CHANGELOG.md)
 [![Personal use](https://img.shields.io/badge/Distribution-personal%20use-5D6B7E)](#-access-and-privacy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 [![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/crystaxit)

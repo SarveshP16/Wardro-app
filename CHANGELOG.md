@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
-## [Unreleased]
+## [2.2.0] - 2026-10-23
 
 ### Added
 - **Place suggestions** when entering a destination (Packing) or location
@@ -46,20 +46,6 @@ it's built for personal use rather than public releases.
 - **Packing List outfit count:** plan fewer outfits than days and re-wear
   them. Results show each outfit once with the days it's worn, plus a
   "Pack N pieces" list of everything to bring.
-
-### Fixed
-- **Packing List dates were a day off** east of UTC (e.g. in Australia a
-  3–5 Nov trip was planned and forecast as 2–4 Nov), and around
-  daylight-saving changes elsewhere; "today" also used UTC's date.
-- Quick Match no longer ranks a dress or jumpsuit worn on its own last.
-- **Android app: content no longer slides under the status bar.** Making
-  Wardro full-screen on iPhone (`viewport-fit=cover`) also made the
-  Android app edge-to-edge, so the header and Add button sat behind the
-  clock and icons. The page now pads itself below the status bar, keeps a
-  solid strip behind it while scrolling, and sets the status-bar icons to
-  light or dark to match Wardro's theme rather than the phone's.
-
-### Added
 - **The AI Stylist never repeats itself.** It remembers every outfit it
   has shown each profile (across visits and devices) and never suggests
   one again, nor one you've already saved. Recent ones are named in the
@@ -77,6 +63,20 @@ it's built for personal use rather than public releases.
   garment colours, on off-white. Used for the Android launcher (adaptive
   and legacy), splash screens, favicon, and README. SVG masters live in
   `public/icons/`.
+- **README demo:** a short GIF of adding a piece, a Wada palette outfit
+  and planning a trip, at the top of the README.
+
+### Fixed
+- **Packing List dates were a day off** east of UTC (e.g. in Australia a
+  3–5 Nov trip was planned and forecast as 2–4 Nov), and around
+  daylight-saving changes elsewhere; "today" also used UTC's date.
+- Quick Match no longer ranks a dress or jumpsuit worn on its own last.
+- **Android app: content no longer slides under the status bar.** Making
+  Wardro full-screen on iPhone (`viewport-fit=cover`) also made the
+  Android app edge-to-edge, so the header and Add button sat behind the
+  clock and icons. The page now pads itself below the status bar, keeps a
+  solid strip behind it while scrolling, and sets the status-bar icons to
+  light or dark to match Wardro's theme rather than the phone's.
 
 ## [2.1.0] - 2026-10-21
 
