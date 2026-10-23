@@ -9,6 +9,18 @@ it's built for personal use rather than public releases.
 ## [Unreleased]
 
 ### Added
+- **Place suggestions** when entering a destination (Packing) or location
+  (AI Stylist): matching places appear as you type, with region and
+  country, so same-named places can't be mixed up.
+- **Trip weather at a glance:** once a destination and dates are set,
+  Packing shows the temperature there now and during the trip, e.g.
+  "Now 20° · During trip ~24° (21–28°) · typical for these dates".
+- **Typical weather beyond the forecast.** Trip days more than ~16 days
+  ahead now use the average low/high and how often it rained or snowed
+  on those dates over the last 10 years (Open-Meteo's historical
+  archive), instead of only a season hint. The AI Stylist gets each
+  day's low–high (not just a midpoint) and is told which days are
+  forecast and which are typical.
 - **Quick Match colour schemes.** Alongside **Classic** (unchanged, still
   the default): Tonal, Analogous, Complementary, Neutral + accent, Wada
   palettes and Surprise me (one outfit per scheme). Schemes work in the

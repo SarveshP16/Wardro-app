@@ -159,24 +159,39 @@ export interface WeatherSnapshot {
   locationLabel: string;
 }
 
-/// One day of a multi-day forecast (see lib/weather.ts's
-/// fetchTripForecastFor*, used by Packing List mode). Same shape as
-/// WeatherSnapshot minus `locationLabel` (shared across every day of a
-/// trip, so it's carried alongside the array rather than per-day) plus
-/// the date it's for.
+/// A place picked from the destination search (lib/weather.ts's
+/// searchPlaces).
+export interface Place {
+  id: number;
+  name: string;
+  /// "Queensland, Australia" -- tells same-named places apart.
+  region: string;
+  latitude: number;
+  longitude: number;
+}
+
+/// One day of a trip's weather (see lib/weather.ts's fetchTripWeather,
+/// used by Packing List mode). Like WeatherSnapshot minus `locationLabel`
+/// (shared across every day of a trip, so it's carried alongside the
+/// array rather than per-day) plus the date and the day's low/high.
 export interface DailyForecast {
   /// YYYY-MM-DD.
   date: string;
-  /// Midpoint of that day's forecast high/low.
+  /// Midpoint of the day's low/high.
   temperatureCelsius: number;
+  highCelsius: number;
+  lowCelsius: number;
   condition: string;
   description: string;
+  /// "forecast": the real forecast (up to ~16 days ahead). "typical": the
+  /// average of the same dates over recent years, for days beyond that.
+  source: "forecast" | "typical";
 }
 
 /// One day of a Packing List trip, as sent to generateAiPackingList --
-/// `weather` is null when the date falls beyond the forecast horizon (see
-/// MAX_FORECAST_DAYS_AHEAD in lib/weather.ts) or the user left live
-/// weather off, in which case the season filter is used as a fallback.
+/// `weather` is null when no weather could be found for the date or the
+/// user turned weather off, in which case the season filter is used as a
+/// fallback.
 export interface PackingDayInput {
   date: string;
   weather: DailyForecast | null;

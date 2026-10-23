@@ -4,13 +4,12 @@ import { prisma } from "@/lib/db";
 import { generateAiPackingList } from "@/lib/anthropic";
 import { itemFromRow } from "@/lib/items";
 import { requireProfile } from "@/lib/profile";
-import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
+import { cleanExcludeCombos, cleanPackingDays, isSeason, isStyle } from "@/lib/validate";
 import { MAX_TRIP_DAYS } from "@/lib/packingList";
 import {
   ClothingItem,
   OutfitGenerationError,
   OutfitStyle,
-  PackingDayInput,
   Season,
 } from "@/lib/types";
 
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
     includeOuterwear?: boolean;
     includeShoes?: boolean;
     season?: Season | null;
-    days?: PackingDayInput[];
+    days?: unknown;
     outfitCount?: number;
     excludeCombos?: string[][];
   };
@@ -45,13 +44,14 @@ export async function POST(request: NextRequest) {
   if (season != null && !isSeason(season)) {
     return NextResponse.json({ error: "Unknown season." }, { status: 400 });
   }
-  if (!Array.isArray(days) || days.length === 0) {
+  const tripDays = cleanPackingDays(days);
+  if (!tripDays || tripDays.length === 0) {
     return NextResponse.json(
       { error: "Add at least one day to plan a trip." },
       { status: 400 },
     );
   }
-  if (days.length > MAX_TRIP_DAYS) {
+  if (tripDays.length > MAX_TRIP_DAYS) {
     return NextResponse.json(
       { error: `Trips are limited to ${MAX_TRIP_DAYS} days.` },
       { status: 400 },
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       includeOuterwear,
       includeShoes,
       season: season ?? null,
-      days,
+      days: tripDays,
       outfitCount:
         typeof outfitCount === "number" && Number.isFinite(outfitCount)
           ? outfitCount

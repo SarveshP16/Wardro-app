@@ -16,7 +16,10 @@ import { OutfitResultCard } from "@/components/outfits/OutfitResultCard";
 import { PackingPlan } from "@/components/outfits/PackingPlan";
 import { SavedOutfitCard } from "@/components/outfits/SavedOutfitCard";
 import { TripDateRangeRow } from "@/components/outfits/TripDateRangeRow";
-import { TripWeatherRow } from "@/components/outfits/TripWeatherRow";
+import {
+  TripWeatherRow,
+  tripAverageCelsius,
+} from "@/components/outfits/TripWeatherRow";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
@@ -33,9 +36,9 @@ import { localToday, MAX_TRIP_DAYS, tripDateRange } from "@/lib/packingList";
 import { SEASON_ICONS } from "@/lib/seasonIcons";
 import {
   fetchCurrentWeather,
-  fetchTripForecastForCurrentLocation,
-  fetchTripForecastForLocation,
-  fetchWeatherForLocation,
+  fetchTripWeather,
+  fetchWeatherForPlace,
+  type TripWeather,
 } from "@/lib/weather";
 import {
   OUTFIT_STYLES,
@@ -46,6 +49,7 @@ import {
   type OutfitStyle,
   type PackingDayInput,
   type PackingDayOutfit,
+  type Place,
   type SavedOutfit,
   type Season,
   type WeatherSnapshot,
@@ -102,7 +106,14 @@ export default function OutfitsPage() {
   const [tripStart, setTripStart] = useState(today);
   const [tripEnd, setTripEnd] = useState(today);
   const [tripWeatherEnabled, setTripWeatherEnabled] = useState(true);
-  const [tripDestination, setTripDestination] = useState<string | null>(null);
+  const [tripDestination, setTripDestination] = useState<Place | null>(null);
+  // The trip's weather, for the place + dates in `key` (see tripWeatherKey);
+  // fetched as soon as those are set, and reused when planning.
+  const [tripWeather, setTripWeather] = useState<{
+    key: string;
+    weather: TripWeather | null;
+    error: string | null;
+  } | null>(null);
   // Distinct outfits for the trip (re-worn); null = one per day.
   const [tripOutfits, setTripOutfits] = useState<number | null>(null);
   const [packingResult, setPackingResult] = useState<PackingDayOutfit[] | null>(null);
@@ -147,11 +158,11 @@ export default function OutfitsPage() {
     }
   }
 
-  async function searchLocationWeather(query: string) {
+  async function searchLocationWeather(place: Place) {
     setWeatherLoading(true);
     setWeatherError(null);
     try {
-      setWeather(await fetchWeatherForLocation(query));
+      setWeather(await fetchWeatherForPlace(place));
     } catch (err) {
       setWeatherError(
         err instanceof Error ? err.message : "Could not fetch weather.",
@@ -170,6 +181,49 @@ export default function OutfitsPage() {
     void loadCurrentLocationWeather();
   }
 
+  // What the trip's weather depends on; null when it isn't wanted.
+  const tripDates = useMemo(() => tripDateRange(tripStart, tripEnd), [tripStart, tripEnd]);
+  const tripWeatherKey =
+    mode === "packing" &&
+    tripWeatherEnabled &&
+    tripDates.length > 0 &&
+    tripDates.length <= MAX_TRIP_DAYS
+      ? [
+          tripDestination ? `${tripDestination.latitude},${tripDestination.longitude}` : "here",
+          tripStart,
+          tripEnd,
+        ].join("|")
+      : null;
+
+  useEffect(() => {
+    if (!tripWeatherKey) return;
+    let cancelled = false;
+    // Wait until the dates stop changing before fetching.
+    const timer = setTimeout(() => {
+      fetchTripWeather(tripDestination, tripStart, tripEnd)
+        .then((weather) => {
+          if (!cancelled) setTripWeather({ key: tripWeatherKey, weather, error: null });
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setTripWeather({
+            key: tripWeatherKey,
+            weather: null,
+            error: err instanceof Error ? err.message : "Could not fetch the weather.",
+          });
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // tripWeatherKey covers the destination and dates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripWeatherKey]);
+
+  const currentTripWeather =
+    tripWeatherKey && tripWeather?.key === tripWeatherKey ? tripWeather : null;
+
   async function handleGeneratePackingList() {
     const dates = tripDateRange(tripStart, tripEnd);
     if (dates.length === 0) {
@@ -180,15 +234,16 @@ export default function OutfitsPage() {
     }
 
     // Weather is best-effort for a trip -- if the lookup fails (no
-    // permission, unknown place, offline), fall back to season-only
-    // hints for every day rather than failing the whole plan.
+    // permission, offline), fall back to season-only hints for every day
+    // rather than failing the whole plan. Usually it's already been
+    // fetched for the summary in TripWeatherRow.
     let forecastByDate = new Map<string, DailyForecast>();
     if (tripWeatherEnabled) {
       try {
-        const forecast = tripDestination
-          ? await fetchTripForecastForLocation(tripDestination, dates[0], dates[dates.length - 1])
-          : await fetchTripForecastForCurrentLocation(dates[0], dates[dates.length - 1]);
-        forecastByDate = new Map(forecast.days.map((day) => [day.date, day]));
+        const weather =
+          currentTripWeather?.weather ??
+          (await fetchTripWeather(tripDestination, tripStart, tripEnd));
+        forecastByDate = new Map(weather.days.map((day) => [day.date, day]));
       } catch {
         // Ignored -- see comment above.
       }
@@ -288,11 +343,15 @@ export default function OutfitsPage() {
   }
 
   const noItems = items !== null && items.length === 0;
-  const tripDayCount = mode === "packing" ? tripDateRange(tripStart, tripEnd).length : 0;
+  const tripDayCount = mode === "packing" ? tripDates.length : 0;
   const tripInvalid = mode === "packing" && (tripDayCount === 0 || tripDayCount > MAX_TRIP_DAYS);
   const tripOutfitCount = Math.max(1, Math.min(tripOutfits ?? tripDayCount, tripDayCount));
   const hasResults =
     (mode === "packing" ? packingResult?.length : generatedOutfits?.length) ?? 0;
+
+  const tripAverage = currentTripWeather?.weather
+    ? tripAverageCelsius(currentTripWeather.weather.days)
+    : null;
 
   const summary = [
     MODE_OPTIONS.find((m) => m.value === mode)!.label,
@@ -303,6 +362,7 @@ export default function OutfitsPage() {
       ? `${Math.round(weather.temperatureCelsius)}°C`
       : null,
     mode === "packing" ? `${tripDayCount} day${tripDayCount === 1 ? "" : "s"}` : null,
+    mode === "packing" && tripAverage !== null ? `~${Math.round(tripAverage)}°C` : null,
     mode === "packing" && tripOutfitCount < tripDayCount
       ? `${tripOutfitCount} outfit${tripOutfitCount === 1 ? "" : "s"}`
       : null,
@@ -414,6 +474,9 @@ export default function OutfitsPage() {
                     <TripWeatherRow
                       enabled={tripWeatherEnabled}
                       destination={tripDestination}
+                      weather={currentTripWeather?.weather ?? null}
+                      loading={tripWeatherKey !== null && currentTripWeather === null}
+                      error={currentTripWeather?.error ?? null}
                       onToggle={() => setTripWeatherEnabled((v) => !v)}
                       onDestinationChange={setTripDestination}
                     />

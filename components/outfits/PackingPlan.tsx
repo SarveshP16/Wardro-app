@@ -77,16 +77,15 @@ export function PackingPlan({
 
       <div className="grid gap-x-8 gap-y-10 px-5 pt-8 md:grid-cols-2">
         {outfits.map(({ outfit, days: worn }) => {
-          const temps = worn
-            .map((d) => d.weather?.temperatureCelsius)
-            .filter((t): t is number => t !== undefined)
-            .map(Math.round);
+          // Coolest low to warmest high over the days it's worn; "~" when
+          // any of them is typical weather rather than a forecast.
+          const weather = worn.flatMap((d) => (d.weather ? [d.weather] : []));
           const tempText =
-            temps.length === 0
+            weather.length === 0
               ? null
-              : Math.min(...temps) === Math.max(...temps)
-                ? `${temps[0]}°C`
-                : `${Math.min(...temps)}–${Math.max(...temps)}°C`;
+              : `${weather.some((w) => w.source === "typical") ? "~" : ""}${Math.round(
+                  Math.min(...weather.map((w) => w.lowCelsius)),
+                )}–${Math.round(Math.max(...weather.map((w) => w.highCelsius)))}°C`;
           return (
             <OutfitResultCard
               key={outfitSignature(outfit.itemIds)}

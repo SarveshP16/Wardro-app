@@ -7,8 +7,10 @@ import {
   OUTFIT_STYLES,
   SEASONS,
   type ClothingCategory,
+  type DailyForecast,
   type Gender,
   type OutfitStyle,
+  type PackingDayInput,
   type Season,
 } from "./types";
 
@@ -84,4 +86,48 @@ export function cleanExcludeCombos(value: unknown): string[][] {
         Array.isArray(combo) && combo.every((id) => typeof id === "string"),
     )
     .slice(-MAX_EXCLUDED_COMBOS);
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/// A plausible air temperature in °C, or null.
+function cleanCelsius(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > -90 && value < 60
+    ? value
+    : null;
+}
+
+/// A trip day's weather as sent by the client (lib/weather.ts); null when
+/// it's missing or malformed, so that day falls back to the season. It
+/// goes into the AI Stylist's prompt, hence the short, plain strings.
+function cleanDailyForecast(value: unknown, date: string): DailyForecast | null {
+  if (typeof value !== "object" || value === null) return null;
+  const w = value as Record<string, unknown>;
+  const high = cleanCelsius(w.highCelsius);
+  const low = cleanCelsius(w.lowCelsius);
+  const temperature = cleanCelsius(w.temperatureCelsius);
+  if (high === null || low === null || temperature === null) return null;
+  const text = (v: unknown) =>
+    typeof v === "string" ? v.replace(/[^\w ,'-]/g, "").slice(0, 40) : "";
+  return {
+    date,
+    temperatureCelsius: temperature,
+    highCelsius: high,
+    lowCelsius: low,
+    condition: text(w.condition),
+    description: text(w.description),
+    source: w.source === "typical" ? "typical" : "forecast",
+  };
+}
+
+/// The trip's days, in order, or null if the list itself is unusable.
+export function cleanPackingDays(value: unknown): PackingDayInput[] | null {
+  if (!Array.isArray(value)) return null;
+  const days: PackingDayInput[] = [];
+  for (const day of value) {
+    const date = (day as { date?: unknown } | null)?.date;
+    if (typeof date !== "string" || !ISO_DATE.test(date)) return null;
+    days.push({ date, weather: cleanDailyForecast((day as { weather?: unknown }).weather, date) });
+  }
+  return days;
 }

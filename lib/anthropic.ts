@@ -435,9 +435,8 @@ interface GenerateAiPackingListOptions {
   outfitCount?: number;
   includeOuterwear?: boolean;
   includeShoes?: boolean;
-  /// Fallback for any day without a weather forecast (too far ahead --
-  /// see MAX_FORECAST_DAYS_AHEAD in lib/weather.ts -- or live weather is
-  /// off); ignored for days that do have one, same as generateAiOutfits
+  /// Fallback for any day without weather (the lookup failed, or weather
+  /// is off); ignored for days that have it, same as generateAiOutfits
   /// ignoring it whenever its own weather is on.
   season?: Season | null;
   days: PackingDayInput[];
@@ -497,15 +496,20 @@ export async function generateAiPackingList(
   const validIds = new Set(eligibleItems.map((item) => item.id));
   const categoryHint = categoryHintFor(eligibleItems, includeOuterwear, includeShoes);
   const hasAnyWeather = days.some((day) => day.weather !== null);
+  const hasTypical = days.some((day) => day.weather?.source === "typical");
 
+  // Each day's low-high rather than one number, so a cool morning and a
+  // hot afternoon can mean layers. Days beyond the forecast get what the
+  // date is usually like there, flagged as such.
   const dayLines = days
     .map((day) => {
-      if (day.weather) {
-        return (
-          `${day.date}: ${day.weather.condition.toLowerCase()}` +
-          `${day.weather.description ? `, ${day.weather.description}` : ""}, ` +
-          `${Math.round(day.weather.temperatureCelsius)}°C`
-        );
+      const weather = day.weather;
+      if (weather) {
+        const range = `${Math.round(weather.lowCelsius)}-${Math.round(weather.highCelsius)}°C`;
+        return weather.source === "typical"
+          ? `${day.date}: no forecast yet -- typically ${range} there at this ` +
+              `time of year, ${weather.description}`
+          : `${day.date}: forecast ${weather.description || weather.condition.toLowerCase()}, ${range}`;
       }
       return (
         `${day.date}: no forecast available` +
@@ -513,6 +517,13 @@ export async function generateAiPackingList(
       );
     })
     .join("\n");
+  const weatherNote = hasAnyWeather
+    ? "Temperatures are each day's low-high." +
+      (hasTypical
+        ? ' "Typically" days are averages of recent years, not a forecast -- ' +
+          "pack so those days can cope with a little warmer or cooler than that."
+        : "")
+    : "";
 
   const avoidHint =
     excludeCombos.length > 0
@@ -537,7 +548,7 @@ export async function generateAiPackingList(
         `You are a fashion stylist packing a ${days.length}-day trip's ` +
         `outfits from a user's own wardrobe for a ${occasionText(style)}.` +
         `${genderHint(gender)} Here is the itinerary, one line per day (date: ` +
-        `conditions):\n${dayLines}\n\n` +
+        `conditions):\n${dayLines}\n${weatherNote}\n` +
         "Each image below is one wardrobe item; its id and category are " +
         "given right before it. Only ever use the item ids provided -- " +
         `never invent one.${avoidHint}`,
