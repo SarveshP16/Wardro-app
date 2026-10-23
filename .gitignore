@@ -57,3 +57,6 @@ android/keystore.properties
 
 # personal to-do list -- local only
 /TODO.md
+
+# Demo video for sharing (too big for the README; the GIF is in docs/)
+/*.mp4

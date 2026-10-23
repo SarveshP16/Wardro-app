@@ -35,6 +35,14 @@ machine and is reached over your own [Tailscale](https://tailscale.com)
 network, from a browser, the Android app, or your iPhone's home screen.
 Everyone in the household gets their own profile.
 
+<div align="center">
+
+<img src="docs/screenshots/demo.gif" alt="Demo: picking a profile, adding a shirt from a photo, a Wada palette outfit, and planning a Gold Coast trip with the typical weather for the dates" width="360" />
+
+<sub>Add a piece from a photo · match outfits by colour · pack for a trip around the weather</sub>
+
+</div>
+
 ## ✨ Features
 
 | | |
