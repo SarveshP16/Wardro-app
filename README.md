@@ -6,7 +6,7 @@
 
 **Your wardrobe, photographed, sorted and styled — on your own server.**
 
-**[🌐 Website: sarveshp16.github.io/Wardro-app](https://sarveshp16.github.io/Wardro-app/)**
+<a href="https://sarveshp16.github.io/Wardro-app/"><img src="https://img.shields.io/badge/Visit_the_website-22395C?style=for-the-badge" alt="Visit the website" height="36" /></a>
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![Postgres](https://img.shields.io/badge/Postgres-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
