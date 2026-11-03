@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
+## [Unreleased]
+
+### Added
+- **Website** at https://sarveshp16.github.io/Wardro-app/ — a landing page
+  in `docs/`, served by GitHub Pages, linked from the README.
+
 ## [2.2.0] - 2026-10-23
 
 ### Added

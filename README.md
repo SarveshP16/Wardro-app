@@ -6,6 +6,8 @@
 
 **Your wardrobe, photographed, sorted and styled — on your own server.**
 
+**[🌐 Website: sarveshp16.github.io/Wardro-app](https://sarveshp16.github.io/Wardro-app/)**
+
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![Postgres](https://img.shields.io/badge/Postgres-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
@@ -275,7 +277,8 @@ android/                Capacitor Android project (the APK)
 android-shell/          pages bundled into the APK (offline error page)
 scripts/                APK build helpers (server URL, icons, splash screens)
 data/                   the Sanzo Wada colour dataset (see its LICENSE.md)
-docs/screenshots/       README images
+docs/                   the website (GitHub Pages, served from this folder)
+  screenshots/           README and website images
 ```
 
 ## ☕ Support
