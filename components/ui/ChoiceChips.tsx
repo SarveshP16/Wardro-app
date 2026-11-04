@@ -5,7 +5,8 @@ import type { ComponentType } from "react";
 type Icon = ComponentType<{ size?: number; className?: string }>;
 
 /// A wrapping row of single-select chips (occasion, season, category).
-/// Wraps instead of scrolling so every option is visible at once.
+/// Wraps instead of scrolling so every option is visible at once. An
+/// option shows an icon, or a `swatch` dot (any CSS colour).
 export function ChoiceChips<T extends string | null>({
   value,
   onChange,
@@ -14,7 +15,7 @@ export function ChoiceChips<T extends string | null>({
 }: {
   value: T;
   onChange: (value: T) => void;
-  options: { value: T; label: string; icon?: Icon }[];
+  options: { value: T; label: string; icon?: Icon; swatch?: string }[];
   label: string;
 }) {
   return (
@@ -36,6 +37,13 @@ export function ChoiceChips<T extends string | null>({
             }`}
           >
             {Icon ? <Icon size={14} /> : null}
+            {option.swatch ? (
+              <span
+                aria-hidden
+                className="size-3.5 rounded-full border border-line"
+                style={{ background: option.swatch }}
+              />
+            ) : null}
             {option.label}
           </button>
         );

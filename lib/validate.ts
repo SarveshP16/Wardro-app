@@ -77,6 +77,15 @@ export async function decodePngCutout(base64: unknown): Promise<Buffer | null> {
   }
 }
 
+/// An optional bottom colour name (lib/bottomColor.ts, e.g. "light blue"):
+/// null when absent, undefined when it isn't a plausible colour name. It
+/// goes into the AI Stylist's prompt, hence the strict shape.
+export function cleanBottomColor(value: unknown): string | null | undefined {
+  if (value === null || typeof value === "undefined") return null;
+  if (typeof value !== "string" || !/^[a-z][a-z -]{0,23}$/.test(value)) return undefined;
+  return value;
+}
+
 /// Keeps only well-formed `string[][]` combos, newest last, capped.
 export function cleanExcludeCombos(value: unknown): string[][] {
   if (!Array.isArray(value)) return [];

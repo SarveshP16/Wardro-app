@@ -120,6 +120,8 @@ export const api = {
     includeShoes: boolean;
     weather?: WeatherSnapshot | null;
     season?: Season | null;
+    /// Build every outfit around a bottom of this colour (lib/bottomColor.ts).
+    bottomColor?: string | null;
     excludeCombos?: string[][];
   }) =>
     request<{ outfits: GeneratedOutfit[] }>("/api/outfits/generate/ai", {

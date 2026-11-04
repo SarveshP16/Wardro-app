@@ -22,6 +22,8 @@ import {
 } from "@/components/outfits/TripWeatherRow";
 import { WeatherToggleRow } from "@/components/outfits/WeatherToggleRow";
 import { api } from "@/lib/api";
+import { bottomColorOptions, restrictToBottomColor } from "@/lib/bottomColor";
+import { toHex } from "@/lib/color";
 import { generateQuickMatchOutfits, MAX_RESULT_COUNT } from "@/lib/colorMatch";
 import {
   COLOR_SCHEMES,
@@ -92,6 +94,9 @@ export default function OutfitsPage() {
   // Quick Match only: Classic is the original matcher (lib/colorMatch.ts);
   // the others are lib/colorSchemes.ts.
   const [scheme, setScheme] = useState<ColorScheme>("classic");
+  // Quick Match and AI Stylist: build every outfit around a bottom of this
+  // colour (lib/bottomColor.ts); null = any.
+  const [bottomColor, setBottomColor] = useState<string | null>(null);
   // The options panel folds down to a one-line summary once there are
   // results, so they get the screen.
   const [optionsOpen, setOptionsOpen] = useState(true);
@@ -143,6 +148,13 @@ export default function OutfitsPage() {
     () => new Map((items ?? []).map((item) => [item.id, item])),
     [items],
   );
+
+  const bottomOptions = useMemo(() => bottomColorOptions(items ?? []), [items]);
+  // A colour whose last bottom was deleted falls back to "any".
+  const activeBottomColor =
+    mode !== "packing" && bottomOptions.some((o) => o.name === bottomColor)
+      ? bottomColor
+      : null;
 
   async function loadCurrentLocationWeather() {
     setWeatherLoading(true);
@@ -271,6 +283,13 @@ export default function OutfitsPage() {
     });
   }
 
+  /// The wardrobe Quick Match draws from, narrowed to the chosen bottom
+  /// colour (the AI Stylist narrows it on the server).
+  function quickMatchItems(): ClothingItem[] {
+    const all = items ?? [];
+    return activeBottomColor ? restrictToBottomColor(all, activeBottomColor) : all;
+  }
+
   async function handleGenerate() {
     if (!items) return;
     setGenerating(true);
@@ -289,18 +308,19 @@ export default function OutfitsPage() {
                 includeShoes,
                 weather: weatherEnabled ? weather : null,
                 season,
+                bottomColor: activeBottomColor,
                 excludeCombos: Array.from(seenSignatures, (sig) => sig.split(",")),
               })
             : scheme === "classic"
               ? generateQuickMatchOutfits({
-                  items,
+                  items: quickMatchItems(),
                   count,
                   includeOuterwear,
                   includeShoes,
                   excludeSignatures: seenSignatures,
                 })
               : generateSchemeOutfits({
-                  items,
+                  items: quickMatchItems(),
                   scheme,
                   count,
                   includeOuterwear,
@@ -358,6 +378,7 @@ export default function OutfitsPage() {
     mode === "quickMatch" && scheme !== "classic" ? SCHEME_LABELS[scheme] : null,
     STYLE_LABELS[style],
     season ? SEASON_LABELS[season] : null,
+    activeBottomColor ? `${capitalize(activeBottomColor)} bottoms` : null,
     mode === "ai" && weatherEnabled && weather
       ? `${Math.round(weather.temperatureCelsius)}°C`
       : null,
@@ -429,6 +450,29 @@ export default function OutfitsPage() {
                   ]}
                 />
               </OptionGroup>
+
+              {mode !== "packing" && bottomOptions.length > 1 ? (
+                <OptionGroup label="Bottom colour">
+                  <ChoiceChips<string | null>
+                    label="Bottom colour"
+                    value={activeBottomColor}
+                    onChange={setBottomColor}
+                    options={[
+                      { value: null, label: "Any" },
+                      ...bottomOptions.map((o) => ({
+                        value: o.name,
+                        label: `${capitalize(o.name)} (${o.count})`,
+                        swatch: toHex(o.swatch),
+                      })),
+                    ]}
+                  />
+                  <p className="text-xs text-muted">
+                    {activeBottomColor
+                      ? `Every outfit uses one of your ${activeBottomColor} bottoms; dresses and jumpsuits are left out.`
+                      : "Pick a colour to build every outfit around those trousers, jeans or skirts."}
+                  </p>
+                </OptionGroup>
+              ) : null}
 
               <div className="flex flex-col gap-2 border-y border-line py-3">
                 <OutfitCategoryToggles
@@ -581,6 +625,8 @@ export default function OutfitsPage() {
     </div>
   );
 }
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function OptionGroup({
   label,

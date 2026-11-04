@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { generateAiOutfits } from "@/lib/anthropic";
+import { restrictToBottomColor } from "@/lib/bottomColor";
 import { itemFromRow } from "@/lib/items";
 import { loadSeenOutfits, recordSuggestions } from "@/lib/outfitHistory";
 import { requireProfile } from "@/lib/profile";
-import { cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
+import { cleanBottomColor, cleanExcludeCombos, isSeason, isStyle } from "@/lib/validate";
 import {
   ClothingItem,
   OutfitGenerationError,
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     includeShoes = true,
     weather,
     season,
+    bottomColor: rawBottomColor,
     excludeCombos,
   } = body as {
     style?: OutfitStyle;
@@ -35,6 +37,7 @@ export async function POST(request: NextRequest) {
     includeShoes?: boolean;
     weather?: WeatherSnapshot | null;
     season?: Season | null;
+    bottomColor?: unknown;
     excludeCombos?: string[][];
   };
 
@@ -44,16 +47,29 @@ export async function POST(request: NextRequest) {
   if (season != null && !isSeason(season)) {
     return NextResponse.json({ error: "Unknown season." }, { status: 400 });
   }
+  const bottomColor = cleanBottomColor(rawBottomColor);
+  if (bottomColor === undefined) {
+    return NextResponse.json({ error: "Unknown bottom colour." }, { status: 400 });
+  }
 
   const rows = await prisma.clothingItem.findMany({
     where: { profileId: auth.id },
   });
-  const items: ClothingItem[] = rows.map(itemFromRow);
+  const wardrobe: ClothingItem[] = rows.map(itemFromRow);
+  let items = wardrobe;
+  if (bottomColor) {
+    try {
+      items = restrictToBottomColor(wardrobe, bottomColor);
+    } catch (error) {
+      const message = error instanceof OutfitGenerationError ? error.message : "Unknown bottom colour.";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+  }
 
   const { promptCombos, alreadySeen } = await loadSeenOutfits(
     auth.id,
     cleanExcludeCombos(excludeCombos),
-    new Set(items.map((item) => item.id)),
+    new Set(wardrobe.map((item) => item.id)),
   );
 
   try {
@@ -65,6 +81,7 @@ export async function POST(request: NextRequest) {
       includeShoes,
       weather: weather ?? null,
       season: season ?? null,
+      bottomColor,
       excludeCombos: promptCombos,
       alreadySeen,
     });

@@ -1,7 +1,7 @@
 import sharp from "sharp";
 
 import { readImage } from "./imageStore";
-import { ROLE_OF } from "./categories";
+import { ROLE_OF, rolesOf } from "./categories";
 import { SEASON_LABELS, STYLE_LABELS } from "./labels";
 import { outfitSignature } from "./outfitSignature";
 import { MAX_TRIP_DAYS } from "./packingList";
@@ -96,6 +96,10 @@ interface GenerateAiOutfitsOptions {
   weather?: WeatherSnapshot | null;
   /// null/omitted means no season preference ("any season").
   season?: Season | null;
+  /// Every outfit is built around a bottom of this colour (see
+  /// lib/bottomColor.ts). `items` must already be narrowed with
+  /// restrictToBottomColor, so the only bottoms offered are that colour.
+  bottomColor?: string | null;
   /// Item-id sets Claude is told not to repeat, listed in the prompt.
   /// Keep this short (it costs tokens on every call) -- the most recent
   /// and most relevant combos; see app/api/outfits/generate/ai/route.ts.
@@ -236,6 +240,7 @@ export async function generateAiOutfits(
     includeShoes = true,
     weather = null,
     season = null,
+    bottomColor = null,
     excludeCombos = [],
     gender,
   } = options;
@@ -272,6 +277,12 @@ export async function generateAiOutfits(
       "alongside the occasion."
     : "";
 
+  const bottomHint = bottomColor
+    ? ` The user wants outfits built around their ${bottomColor} bottoms: ` +
+      "every outfit must include exactly one of the bottoms shown (all of " +
+      "them are that colour), with a top that works with it."
+    : "";
+
   // Encoded once and reused if the request has to be retried.
   const imageBlocks = await wardrobeImageBlocks(eligibleItems);
 
@@ -281,7 +292,7 @@ export async function generateAiOutfits(
         type: "text",
         text:
           `You are a fashion stylist choosing outfits from a user's own ` +
-          `wardrobe for a ${occasionText(style)}.${genderHint(gender)}${weatherHint}${seasonHint} ` +
+          `wardrobe for a ${occasionText(style)}.${genderHint(gender)}${weatherHint}${seasonHint}${bottomHint} ` +
           "Each image below is one wardrobe item; its id and category are " +
           "given right before it. Only ever use the item ids provided -- " +
           `never invent one.${avoidHintFor(avoidCombos)}`,
@@ -353,6 +364,14 @@ export async function generateAiOutfits(
   // lists recent history): ask once more, naming those combos too.
   if (result.outfits.length === 0 && result.repeats.length > 0) {
     result = await requestOutfits([...excludeCombos, ...result.repeats]);
+  }
+  // Built around a bottom colour: an outfit that skipped the bottom
+  // doesn't answer the request.
+  if (bottomColor) {
+    const bottoms = new Set(
+      eligibleItems.filter((i) => rolesOf(i).includes("bottom")).map((i) => i.id),
+    );
+    result.outfits = result.outfits.filter((o) => o.itemIds.some((id) => bottoms.has(id)));
   }
   if (result.outfits.length === 0) {
     throw new OutfitGenerationError(

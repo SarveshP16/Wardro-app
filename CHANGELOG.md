@@ -9,6 +9,10 @@ it's built for personal use rather than public releases.
 ## [Unreleased]
 
 ### Added
+- **Bottom colour** for Quick Match and the AI Stylist: pick one of the
+  colours your trousers, jeans or skirts come in ("Navy (2)") and every
+  outfit is built around a bottom of that colour. Dresses and jumpsuits
+  are left out while a colour is picked, since they replace the bottom.
 - **Website** at https://sarveshp16.github.io/Wardro-app/ — a landing page
   in `docs/`, served by GitHub Pages, linked from the README.
 
