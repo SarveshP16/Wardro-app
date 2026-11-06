@@ -291,11 +291,8 @@ If Wardro App is useful to you, you can support its development on Ko-fi:
   </a>
 </p>
 
-## 📜 History
+## 📜 Changelog
 
-Wardro started as a Flutter app (Android + iOS) storing everything
-on-device. It was rebuilt as this self-hosted web app to run from one
-Docker host and be reachable from every device on a Tailscale network,
-then gained profiles and its two looks — see [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](CHANGELOG.md).
 
 Released under the [MIT License](LICENSE).
