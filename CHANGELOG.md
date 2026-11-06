@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project does not currently follow semantic versioning strictly, since
 it's built for personal use rather than public releases.
 
-## [Unreleased]
+## [2.3.0] - 2026-11-07
 
 ### Added
 - **Bottom colour** for Quick Match and the AI Stylist: pick one of the
